@@ -30,15 +30,7 @@ let memoryCustomers: CustomerRecord[] = [...INITIAL_CUSTOMERS];
 let memorySettings: SiteSettings = { ...DEFAULT_SETTINGS };
 
 async function isDatabaseAvailable(): Promise<boolean> {
-  if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('your-tenant-ref')) {
-    return false;
-  }
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch {
-    return false;
-  }
+  return Boolean(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref'));
 }
 
 // ---------------- PRODUCTS ----------------
