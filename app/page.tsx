@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles, ShieldCheck, Truck, Award, SlidersHorizontal, Che
 import { getProducts, getCategories, getSettings } from '@/lib/db';
 import ProductCard from '@/components/ProductCard';
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function HomePage() {
   const featuredProducts = await getProducts({ featuredOnly: true });
