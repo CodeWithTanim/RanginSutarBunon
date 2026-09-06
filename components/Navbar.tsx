@@ -33,8 +33,8 @@ export default function Navbar() {
       .catch(() => {});
   }, [pathname]);
 
-  // Requirement 8: Hide Main Header in Admin Panel (/boss)
-  if (!mounted || pathname.startsWith('/boss')) {
+  // Hide Main Header in Admin Panel (/boss)
+  if (pathname.startsWith('/boss')) {
     return null;
   }
 
