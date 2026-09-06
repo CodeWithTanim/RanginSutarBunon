@@ -118,7 +118,7 @@ export const INITIAL_ORDERS: OrderRecord[] = [];
 export const INITIAL_CUSTOMERS: CustomerRecord[] = [];
 
 export const DEFAULT_SETTINGS: SiteSettings = {
-  deliveryCharge: 80,
+  deliveryCharge: 150,
   siteTitle: 'Rangin Sutar Bunon',
   metaDescription: 'Discover authentic handcrafted items and products.',
   metaKeywords: 'handicraft, saree, silk shawl, tea set, products',

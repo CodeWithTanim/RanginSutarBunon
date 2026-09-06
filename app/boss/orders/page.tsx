@@ -13,6 +13,7 @@ import {
   Calendar,
   CreditCard,
   X,
+  Trash2,
 } from 'lucide-react';
 import { OrderRecord } from '@/lib/initialData';
 
@@ -47,6 +48,17 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to delete this order?')) return;
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete order');
+      fetchOrders();
+    } catch (err: any) {
+      alert(err.message || 'Error deleting order');
+    }
+  };
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
@@ -186,12 +198,19 @@ export default function AdminOrdersPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-4 py-3.5 text-right flex items-center justify-end gap-2">
                       <button
                         onClick={() => setActiveOrder(o)}
-                        className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-amber-300 font-semibold rounded-lg transition-colors flex items-center gap-1.5 ml-auto"
+                        className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-amber-300 font-semibold rounded-lg transition-colors flex items-center gap-1.5"
                       >
                         <Eye className="w-3.5 h-3.5" /> Details
+                      </button>
+                      <button
+                        onClick={() => handleDeleteOrder(o.id)}
+                        className="p-1.5 bg-stone-800 hover:bg-rose-950/80 border border-stone-700 hover:border-rose-700 text-stone-400 hover:text-rose-400 font-semibold rounded-lg transition-colors"
+                        title="Delete order"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>

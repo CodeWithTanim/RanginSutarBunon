@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Eye, MapPin, ShoppingBag, X } from 'lucide-react';
+import { Users, Search, Eye, MapPin, ShoppingBag, X, Trash2 } from 'lucide-react';
 import { CustomerRecord, OrderRecord } from '@/lib/initialData';
 
 export default function AdminCustomersPage() {
@@ -11,7 +11,8 @@ export default function AdminCustomersPage() {
   const [search, setSearch] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
 
-  useEffect(() => {
+  const fetchCustomers = () => {
+    setLoading(true);
     Promise.all([
       fetch('/api/customers').then((r) => (r.ok ? r.json() : [])),
       fetch('/api/orders').then((r) => (r.ok ? r.json() : [])),
@@ -22,7 +23,22 @@ export default function AdminCustomersPage() {
       })
       .catch((err) => console.error('Error fetching customers:', err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchCustomers();
   }, []);
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    if (!confirm('Are you sure you want to delete this customer profile?')) return;
+    try {
+      const res = await fetch(`/api/customers/${customerId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete customer');
+      fetchCustomers();
+    } catch (err: any) {
+      alert(err.message || 'Error deleting customer');
+    }
+  };
 
   const filteredCustomers = customers.filter(
     (c) =>
@@ -88,12 +104,19 @@ export default function AdminCustomersPage() {
                     <td className="px-4 py-3.5 font-bold text-amber-300">{c.totalOrders} order(s)</td>
                     <td className="px-4 py-3.5 font-extrabold text-amber-200">৳{c.totalSpent}</td>
                     <td className="px-4 py-3.5 text-stone-400">{new Date(c.createdAt).toLocaleDateString()}</td>
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-4 py-3.5 text-right flex items-center justify-end gap-2">
                       <button
                         onClick={() => setSelectedCustomer(c)}
-                        className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-amber-300 font-semibold rounded-lg transition-colors flex items-center gap-1.5 ml-auto"
+                        className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-amber-300 font-semibold rounded-lg transition-colors flex items-center gap-1.5"
                       >
                         <Eye className="w-3.5 h-3.5" /> History
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCustomer(c.id)}
+                        className="p-1.5 bg-stone-800 hover:bg-rose-950/80 border border-stone-700 hover:border-rose-700 text-stone-400 hover:text-rose-400 font-semibold rounded-lg transition-colors"
+                        title="Delete customer profile"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>

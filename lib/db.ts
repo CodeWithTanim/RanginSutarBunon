@@ -575,6 +575,33 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
   return false;
 }
 
+export async function deleteOrder(orderId: string): Promise<boolean> {
+  try {
+    if (await isDatabaseAvailable()) {
+      await prisma.orderItem.deleteMany({ where: { orderId } });
+      await prisma.order.delete({ where: { id: orderId } });
+      return true;
+    }
+  } catch (err) {
+    console.warn('Prisma deleteOrder fallback:', err);
+  }
+  memoryOrders = memoryOrders.filter((o) => o.id !== orderId);
+  return true;
+}
+
+export async function deleteCustomer(customerId: string): Promise<boolean> {
+  try {
+    if (await isDatabaseAvailable()) {
+      await prisma.customer.delete({ where: { id: customerId } });
+      return true;
+    }
+  } catch (err) {
+    console.warn('Prisma deleteCustomer fallback:', err);
+  }
+  memoryCustomers = memoryCustomers.filter((c) => c.id !== customerId);
+  return true;
+}
+
 export async function getCustomers(): Promise<CustomerRecord[]> {
   try {
     if (await isDatabaseAvailable()) {
