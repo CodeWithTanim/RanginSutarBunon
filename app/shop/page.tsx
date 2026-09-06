@@ -23,6 +23,7 @@ export default function ShopPage() {
       if (searchParam) setSearchQuery(searchParam);
     }
 
+    setLoading(true);
     Promise.all([
       fetch('/api/products').then((res) => res.json()),
       fetch('/api/categories').then((res) => res.json()),
@@ -31,7 +32,8 @@ export default function ShopPage() {
         if (Array.isArray(prodsData)) setProducts(prodsData);
         if (Array.isArray(catsData)) setCategories(catsData);
       })
-      .catch((err) => console.error('Error loading shop data:', err));
+      .catch((err) => console.error('Error loading shop data:', err))
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -48,7 +50,9 @@ export default function ShopPage() {
     }
 
     if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.categoryId === selectedCategory);
+      result = result.filter(
+        (p) => p.categoryId === selectedCategory || (p.categoryIds && p.categoryIds.includes(selectedCategory))
+      );
     }
 
     if (sortBy === 'price-low') {
@@ -125,7 +129,9 @@ export default function ShopPage() {
             All Categories ({products.length})
           </button>
           {categories.map((cat) => {
-            const count = products.filter((p) => p.categoryId === cat.id).length;
+            const count = products.filter(
+              (p) => p.categoryId === cat.id || (p.categoryIds && p.categoryIds.includes(cat.id))
+            ).length;
             return (
               <button
                 key={cat.id}
