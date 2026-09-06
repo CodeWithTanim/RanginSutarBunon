@@ -269,6 +269,122 @@ export default function AdminSEOSettingsPage() {
           </div>
         </div>
 
+        {/* Section 1.8: Footer Customization & Social Links */}
+        <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex items-center gap-3 pb-4 border-b border-stone-800">
+            <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center">
+              <Layout className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-serif text-lg font-bold text-amber-100">Footer Customization & Social Links</h2>
+              <p className="text-xs text-stone-400">Manage footer description, footer contact info, and social media profile URLs</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase tracking-wider text-stone-300">Footer Brand About Text</label>
+              <textarea
+                rows={2}
+                name="footerAboutText"
+                value={settings.footerAboutText || ''}
+                onChange={handleChange}
+                placeholder="Celebrating rich quality and design..."
+                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="font-bold uppercase tracking-wider text-stone-300">Footer Contact Phone</label>
+                <input
+                  type="text"
+                  name="footerPhone"
+                  value={settings.footerPhone || ''}
+                  onChange={handleChange}
+                  placeholder="+880 1700-000000"
+                  className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-bold uppercase tracking-wider text-stone-300">Footer Support Email</label>
+                <input
+                  type="email"
+                  name="footerEmail"
+                  value={settings.footerEmail || ''}
+                  onChange={handleChange}
+                  placeholder="Leave empty to hide email from footer"
+                  className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase tracking-wider text-stone-300">Footer Address</label>
+              <input
+                type="text"
+                name="footerAddress"
+                value={settings.footerAddress || ''}
+                onChange={handleChange}
+                placeholder="Dhaka, Bangladesh"
+                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase tracking-wider text-stone-300">Footer Copyright Text</label>
+              <input
+                type="text"
+                name="footerCopyright"
+                value={settings.footerCopyright || ''}
+                onChange={handleChange}
+                placeholder="© 2026 Rangin Sutar Bunon. All rights reserved."
+                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-stone-800 space-y-3">
+              <label className="font-bold uppercase tracking-wider text-amber-300 block">Social Media Links (Leave empty to hide icon)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400">Facebook URL</label>
+                  <input
+                    type="text"
+                    name="facebookUrl"
+                    value={settings.facebookUrl || ''}
+                    onChange={handleChange}
+                    placeholder="https://facebook.com/..."
+                    className="w-full px-3 py-2 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 text-xs rounded-xl outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400">Instagram URL</label>
+                  <input
+                    type="text"
+                    name="instagramUrl"
+                    value={settings.instagramUrl || ''}
+                    onChange={handleChange}
+                    placeholder="https://instagram.com/..."
+                    className="w-full px-3 py-2 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 text-xs rounded-xl outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400">YouTube URL</label>
+                  <input
+                    type="text"
+                    name="youtubeUrl"
+                    value={settings.youtubeUrl || ''}
+                    onChange={handleChange}
+                    placeholder="https://youtube.com/..."
+                    className="w-full px-3 py-2 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 text-xs rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Section 2: Search Engine Metadata */}
         <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
           <div className="flex items-center gap-3 pb-4 border-b border-stone-800">

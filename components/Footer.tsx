@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, Truck, Clock, RefreshCw, Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { ShieldCheck, Truck, Clock, RefreshCw, Mail, Phone, MapPin, Heart, Facebook, Instagram, Youtube } from 'lucide-react';
 import { SiteSettings, DEFAULT_SETTINGS } from '@/lib/initialData';
 
 export default function Footer() {
@@ -23,6 +23,8 @@ export default function Footer() {
       })
       .catch(() => {});
   }, [pathname]);
+
+  const hasSocials = Boolean(settings.facebookUrl || settings.instagramUrl || settings.youtubeUrl);
 
   return (
     <footer className="bg-white text-gray-700 pt-16 pb-8 border-t border-gray-200">
@@ -72,14 +74,53 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* Brand & About (Requirement 2: Fully customizable from Admin) */}
+        {/* Brand & About */}
         <div className="space-y-4">
           <h3 className="font-serif text-2xl font-bold text-[#003d29]">
             {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
           </h3>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {settings.footerAboutText || 'Celebrating the rich heritage of handcrafted textiles, terracotta pottery, organic teas, and brassware.'}
+            {settings.footerAboutText || 'Celebrating rich quality and design. Bringing authentic products directly to your home.'}
           </p>
+
+          {/* Social Links (Render only if provided) */}
+          {hasSocials && (
+            <div className="flex items-center gap-3 pt-2">
+              {settings.facebookUrl && (
+                <a
+                  href={settings.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-emerald-50 text-[#003d29] hover:bg-[#003d29] hover:text-white flex items-center justify-center transition-colors"
+                  aria-label="Facebook Page"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+              )}
+              {settings.instagramUrl && (
+                <a
+                  href={settings.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-emerald-50 text-[#003d29] hover:bg-[#003d29] hover:text-white flex items-center justify-center transition-colors"
+                  aria-label="Instagram Profile"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              )}
+              {settings.youtubeUrl && (
+                <a
+                  href={settings.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-emerald-50 text-[#003d29] hover:bg-[#003d29] hover:text-white flex items-center justify-center transition-colors"
+                  aria-label="YouTube Channel"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Quick Links */}

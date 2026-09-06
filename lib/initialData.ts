@@ -94,6 +94,9 @@ export interface SiteSettings {
   footerEmail: string;
   footerAddress: string;
   footerCopyright: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
 
   // About Page Settings
   aboutBadgeText: string;
@@ -150,6 +153,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   footerEmail: '',
   footerAddress: 'Dhaka, Bangladesh',
   footerCopyright: '© 2026 Rangin Sutar Bunon. All rights reserved.',
+  facebookUrl: '',
+  instagramUrl: '',
+  youtubeUrl: '',
 
   // About Page Defaults
   aboutBadgeText: 'Our Story',

@@ -51,17 +51,17 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
       {/* Top Banner (Left Mobile | Center Discount Text | Right Support Email) */}
-      <div className="bg-[#003d29] text-white text-xs py-2 px-4 sm:px-8 flex items-center justify-between font-medium">
+      <div className="bg-[#003d29] text-white text-xs py-2 px-4 sm:px-8 grid grid-cols-1 md:grid-cols-3 items-center font-medium gap-2">
         {/* Left: Phone */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 justify-center md:justify-start">
           <Phone className="w-3.5 h-3.5 text-emerald-300" />
           <span>{settings.topBannerPhone || '+880 1712-345678'}</span>
         </div>
 
         {/* Center: Discount Text (Show/Hide controlled from Admin) */}
-        {settings.showTopBannerText !== false && (
-          <div className="hidden md:flex items-center gap-2 text-emerald-100 text-center">
-            <span>{settings.topBannerText || 'Get 50% Off On Selected Artisanal Items'}</span>
+        {settings.showTopBannerText !== false ? (
+          <div className="hidden md:flex items-center justify-center gap-2 text-emerald-100 text-center">
+            <span>{settings.topBannerText || 'Welcome to Rangin Sutar Bunon'}</span>
             {settings.topBannerLinkText && (
               <>
                 <span>|</span>
@@ -71,17 +71,19 @@ export default function Navbar() {
               </>
             )}
           </div>
-        )}
+        ) : <div className="hidden md:block" />}
 
         {/* Right: Support Email (Show only if provided) */}
-        {settings.topBannerEmail && (
-          <div className="flex items-center gap-2 shrink-0 text-emerald-100">
-            <Mail className="w-3.5 h-3.5 text-emerald-300" />
-            <a href={`mailto:${settings.topBannerEmail}`} className="hover:text-white transition">
-              {settings.topBannerEmail}
-            </a>
-          </div>
-        )}
+        <div className="hidden md:flex items-center justify-end gap-2 text-emerald-100">
+          {settings.topBannerEmail && (
+            <>
+              <Mail className="w-3.5 h-3.5 text-emerald-300" />
+              <a href={`mailto:${settings.topBannerEmail}`} className="hover:text-white transition">
+                {settings.topBannerEmail}
+              </a>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main Header Container */}
