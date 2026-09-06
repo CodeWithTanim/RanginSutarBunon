@@ -109,131 +109,13 @@ export interface SiteSettings {
   aboutStat3Label: string;
 }
 
-export const INITIAL_CATEGORIES: CategoryItem[] = [
-  { id: 'cat-1', name: 'Handcrafted Textiles', slug: 'handcrafted-textiles' },
-  { id: 'cat-2', name: 'Artisan Pottery', slug: 'artisan-pottery' },
-  { id: 'cat-3', name: 'Organic Teas & Spices', slug: 'organic-teas-spices' },
-  { id: 'cat-4', name: 'Heritage Brassware', slug: 'heritage-brassware' },
-];
+export const INITIAL_CATEGORIES: CategoryItem[] = [];
 
-export const INITIAL_PRODUCTS: ProductItem[] = [
-  {
-    id: 'prod-1',
-    name: 'Hand-Woven Jamdani Pure Silk Shawl',
-    slug: 'hand-woven-jamdani-pure-silk-shawl',
-    description: 'Exquisite hand-spun Jamdani silk shawl crafted by master artisans using traditional wooden looms.',
-    price: 3499,
-    discountPrice: 2899,
-    stock: 12,
-    categoryId: 'cat-1',
-    categoryName: 'Handcrafted Textiles',
-    imageUrl: 'https://images.unsplash.com/photo-1606760227091-3dd858d9721b?auto=format&fit=crop&q=80&w=800',
-    images: [
-      'https://images.unsplash.com/photo-1606760227091-3dd858d9721b?auto=format&fit=crop&q=80&w=800'
-    ],
-    isFeatured: true,
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'prod-2',
-    name: 'Artisanal Terracotta Tea Set (6 Cups)',
-    slug: 'artisanal-terracotta-tea-set-6-cups',
-    description: 'Natural unglazed clay tea service handcrafted with traditional motifs.',
-    price: 1599,
-    discountPrice: 1299,
-    stock: 25,
-    categoryId: 'cat-2',
-    categoryName: 'Artisan Pottery',
-    imageUrl: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=800',
-    images: [
-      'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=800'
-    ],
-    isFeatured: true,
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'prod-3',
-    name: 'Premium Royal Darjeeling First Flush Tea (100g)',
-    slug: 'premium-royal-darjeeling-first-flush-tea',
-    description: 'Single-origin organic Darjeeling tea harvested during early spring.',
-    price: 899,
-    discountPrice: 749,
-    stock: 40,
-    categoryId: 'cat-3',
-    categoryName: 'Organic Teas & Spices',
-    imageUrl: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&q=80&w=800',
-    images: [
-      'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&q=80&w=800'
-    ],
-    isFeatured: false,
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'prod-4',
-    name: 'Hand-Carved Antique Brass Spiced Urn',
-    slug: 'hand-carved-antique-brass-spiced-urn',
-    description: 'Solid brass decorative oil lamp & incense urn crafted by legacy metalworkers.',
-    price: 2499,
-    discountPrice: 1999,
-    stock: 8,
-    categoryId: 'cat-4',
-    categoryName: 'Heritage Brassware',
-    imageUrl: 'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&q=80&w=800',
-    images: [
-      'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&q=80&w=800'
-    ],
-    isFeatured: true,
-    isActive: true,
-    createdAt: new Date().toISOString()
-  }
-];
+export const INITIAL_PRODUCTS: ProductItem[] = [];
 
-export const INITIAL_ORDERS: OrderRecord[] = [
-  {
-    id: 'ORD-20260906-001',
-    customerName: 'Ananya Roy',
-    mobile: '01712345678',
-    address: 'House 4B, Road 12, Dhanmondi',
-    city: 'Dhaka',
-    state: 'Dhaka Division',
-    pincode: '1209',
-    note: 'Please deliver in the evening if possible.',
-    subtotal: 2899,
-    deliveryCharge: 80,
-    totalAmount: 2979,
-    status: 'Delivered',
-    paymentMethod: 'Cash on Delivery',
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    items: [
-      {
-        id: 'item-1',
-        productId: 'prod-1',
-        productName: 'Hand-Woven Jamdani Pure Silk Shawl',
-        quantity: 1,
-        price: 2899,
-        total: 2899
-      }
-    ]
-  }
-];
+export const INITIAL_ORDERS: OrderRecord[] = [];
 
-export const INITIAL_CUSTOMERS: CustomerRecord[] = [
-  {
-    id: 'cust-1',
-    name: 'Ananya Roy',
-    mobile: '01712345678',
-    address: 'House 4B, Road 12, Dhanmondi',
-    city: 'Dhaka',
-    state: 'Dhaka Division',
-    pincode: '1209',
-    totalOrders: 1,
-    totalSpent: 2979,
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
-  }
-];
+export const INITIAL_CUSTOMERS: CustomerRecord[] = [];
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   deliveryCharge: 80,
