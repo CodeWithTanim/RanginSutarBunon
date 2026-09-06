@@ -6,8 +6,8 @@ import ProductCard from '@/components/ProductCard';
 import { ProductItem, CategoryItem, INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '@/lib/initialData';
 
 export default function ShopPage() {
-  const [products, setProducts] = useState<ProductItem[]>(INITIAL_PRODUCTS);
-  const [categories, setCategories] = useState<CategoryItem[]>(INITIAL_CATEGORIES);
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -28,8 +28,8 @@ export default function ShopPage() {
       fetch('/api/categories').then((res) => res.json()),
     ])
       .then(([prodsData, catsData]) => {
-        if (Array.isArray(prodsData) && prodsData.length > 0) setProducts(prodsData);
-        if (Array.isArray(catsData) && catsData.length > 0) setCategories(catsData);
+        if (Array.isArray(prodsData)) setProducts(prodsData);
+        if (Array.isArray(catsData)) setCategories(catsData);
       })
       .catch((err) => console.error('Error loading shop data:', err));
   }, []);
