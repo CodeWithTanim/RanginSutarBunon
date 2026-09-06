@@ -623,14 +623,17 @@ export async function getSettings(): Promise<SiteSettings> {
 export async function updateSettings(newSettings: Partial<SiteSettings>): Promise<SiteSettings> {
   try {
     if (await isDatabaseAvailable()) {
-      for (const [key, value] of Object.entries(newSettings)) {
-        if (value !== undefined) {
-          await prisma.setting.upsert({
+      const ops = Object.entries(newSettings)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) =>
+          prisma.setting.upsert({
             where: { key },
             update: { value: String(value) },
             create: { key, value: String(value) },
-          });
-        }
+          })
+        );
+      if (ops.length > 0) {
+        await prisma.$transaction(ops);
       }
     }
   } catch (err) {
