@@ -650,16 +650,19 @@ export async function getSettings(): Promise<SiteSettings> {
 export async function updateSettings(newSettings: Partial<SiteSettings>): Promise<SiteSettings> {
   try {
     if (await isDatabaseAvailable()) {
-      const ops = Object.entries(newSettings)
-        .filter(([, value]) => value !== undefined)
-        .map(([key, value]) =>
+      const current = await getSettings();
+      const changedEntries = Object.entries(newSettings).filter(
+        ([key, value]) => value !== undefined && String(value) !== String((current as any)[key])
+      );
+
+      if (changedEntries.length > 0) {
+        const ops = changedEntries.map(([key, value]) =>
           prisma.setting.upsert({
             where: { key },
             update: { value: String(value) },
             create: { key, value: String(value) },
           })
         );
-      if (ops.length > 0) {
         await prisma.$transaction(ops);
       }
     }
