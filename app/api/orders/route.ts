@@ -21,11 +21,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { customerName, mobile, address, city, state, pincode, items, note } = body;
 
-    // Mobile Validation (10-digit check)
+    // Mobile Validation (11-digit Bangladesh check)
     const cleanMobile = mobile ? String(mobile).trim() : '';
-    if (!/^\d{10}$/.test(cleanMobile)) {
+    if (!/^01\d{9}$/.test(cleanMobile)) {
       return NextResponse.json(
-        { error: 'Please enter a valid 10-digit mobile number' },
+        { error: 'Please enter a valid 11-digit Bangladesh mobile number starting with 01 (e.g., 01712345678)' },
         { status: 400 }
       );
     }

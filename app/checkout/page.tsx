@@ -9,6 +9,8 @@ import { useCart } from '@/context/CartContext';
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, subtotal, deliveryCharge, grandTotal, clearCart } = useCart();
+  const [customer, setCustomer] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -22,6 +24,41 @@ export default function CheckoutPage() {
 
   const [error, setError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    fetch('/api/customer/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data || !data.customer) {
+          router.push('/account/login?redirect=/checkout');
+        } else {
+          setCustomer(data.customer);
+          setFormData((prev) => ({
+            ...prev,
+            customerName: data.customer.name || '',
+            mobile: data.customer.mobile || '',
+            address: data.customer.address || '',
+            city: data.customer.city || '',
+            state: data.customer.state || '',
+            pincode: data.customer.pincode || '',
+          }));
+        }
+      })
+      .catch(() => {
+        router.push('/account/login?redirect=/checkout');
+      })
+      .finally(() => setAuthLoading(false));
+  }, [router]);
+
+  if (authLoading) {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 bg-white border border-gray-200 rounded-3xl text-center space-y-4 shadow-sm animate-pulse">
+        <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto" />
+        <div className="h-6 bg-gray-200 rounded w-1/2 mx-auto" />
+        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto" />
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -49,8 +86,8 @@ export default function CheckoutPage() {
     setError('');
 
     const cleanMobile = formData.mobile.trim();
-    if (!/^\d{10,11}$/.test(cleanMobile)) {
-      setError('Please enter a valid mobile number (e.g., 01712345678)');
+    if (!/^01\d{9}$/.test(cleanMobile)) {
+      setError('Please enter a valid 11-digit Bangladesh mobile number starting with 01 (e.g., 01712345678)');
       return;
     }
 

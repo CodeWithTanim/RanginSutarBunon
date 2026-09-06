@@ -8,8 +8,8 @@ export async function POST(request: Request) {
     const { name, mobile, password, address, city, state, pincode } = await request.json();
 
     const cleanMobile = mobile ? String(mobile).trim() : '';
-    if (!/^\d{10,11}$/.test(cleanMobile)) {
-      return NextResponse.json({ error: 'Please enter a valid 11-digit or 10-digit mobile number' }, { status: 400 });
+    if (!/^01\d{9}$/.test(cleanMobile)) {
+      return NextResponse.json({ error: 'Please enter a valid 11-digit Bangladesh mobile number starting with 01 (e.g., 01712345678)' }, { status: 400 });
     }
 
     if (!name || !password || !address || !city || !state || !pincode) {

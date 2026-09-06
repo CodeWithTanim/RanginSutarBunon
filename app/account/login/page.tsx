@@ -18,8 +18,8 @@ export default function CustomerLoginPage() {
     setLoading(true);
 
     const cleanMobile = mobile.trim();
-    if (!/^\d{10,11}$/.test(cleanMobile)) {
-      setError('Please enter a valid 11-digit or 10-digit mobile number');
+    if (!/^01\d{9}$/.test(cleanMobile)) {
+      setError('Please enter a valid 11-digit Bangladesh mobile number starting with 01');
       setLoading(false);
       return;
     }
