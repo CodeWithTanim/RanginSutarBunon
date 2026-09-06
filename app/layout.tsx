@@ -41,6 +41,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/uploads/favicon.png" />
+      </head>
       <body className="bg-[#fcfcfc] text-gray-900 font-sans antialiased min-h-screen flex flex-col selection:bg-[#003d29] selection:text-white" suppressHydrationWarning>
         <CartProvider>
           <Navbar />
