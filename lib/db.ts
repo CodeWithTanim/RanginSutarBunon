@@ -40,12 +40,12 @@ export async function getProducts(options?: {
   search?: string;
   featuredOnly?: boolean;
 }): Promise<ProductItem[]> {
+  const allCategories = await getCategories();
+  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+
   try {
     if (await isDatabaseAvailable()) {
       const where: any = { isActive: true };
-      if (options?.categoryId && options.categoryId !== 'all') {
-        where.categoryId = options.categoryId;
-      }
       if (options?.featuredOnly) {
         where.isFeatured = true;
       }
@@ -60,22 +60,47 @@ export async function getProducts(options?: {
         include: { category: true },
         orderBy: { createdAt: 'desc' },
       });
-      return dbProducts.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        price: p.price,
-        discountPrice: p.discountPrice,
-        stock: p.stock,
-        categoryId: p.categoryId,
-        categoryName: p.category?.name || 'General',
-        imageUrl: p.imageUrl,
-        images: JSON.parse(p.images || '[]'),
-        isFeatured: p.isFeatured,
-        isActive: p.isActive,
-        createdAt: p.createdAt.toISOString(),
-      }));
+
+      const parsedList = dbProducts.map((p: any) => {
+        let catIds: string[] = [];
+        try {
+          if (p.images && p.images.startsWith('CAT:')) {
+            catIds = JSON.parse(p.images.substring(4));
+          } else {
+            catIds = [p.categoryId];
+          }
+        } catch {
+          catIds = [p.categoryId];
+        }
+        if (!catIds.includes(p.categoryId)) {
+          catIds.push(p.categoryId);
+        }
+        const catNames = catIds.map((cid) => categoryMap.get(cid) || (cid === p.categoryId ? p.category?.name : '') || 'General').filter(Boolean);
+
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          description: p.description,
+          price: p.price,
+          discountPrice: p.discountPrice,
+          stock: p.stock,
+          categoryId: p.categoryId,
+          categoryName: catNames.join(', ') || p.category?.name || 'General',
+          categoryIds: catIds,
+          categoryNames: catNames,
+          imageUrl: p.imageUrl,
+          images: [],
+          isFeatured: p.isFeatured,
+          isActive: p.isActive,
+          createdAt: p.createdAt.toISOString(),
+        };
+      });
+
+      if (options?.categoryId && options.categoryId !== 'all') {
+        return parsedList.filter((p) => p.categoryIds?.includes(options.categoryId!));
+      }
+      return parsedList;
     }
   } catch (err) {
     console.warn('Prisma getProducts fallback to memory:', err);
@@ -83,7 +108,7 @@ export async function getProducts(options?: {
 
   let list = memoryProducts.filter((p) => p.isActive);
   if (options?.categoryId && options.categoryId !== 'all') {
-    list = list.filter((p) => p.categoryId === options.categoryId);
+    list = list.filter((p) => p.categoryIds?.includes(options.categoryId!) || p.categoryId === options.categoryId);
   }
   if (options?.featuredOnly) {
     list = list.filter((p) => p.isFeatured);
@@ -98,67 +123,18 @@ export async function getProducts(options?: {
 }
 
 export async function getAllProductsAdmin(): Promise<ProductItem[]> {
-  try {
-    if (await isDatabaseAvailable()) {
-      const dbProducts = await prisma.product.findMany({
-        include: { category: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      return dbProducts.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        price: p.price,
-        discountPrice: p.discountPrice,
-        stock: p.stock,
-        categoryId: p.categoryId,
-        categoryName: p.category?.name || 'General',
-        imageUrl: p.imageUrl,
-        images: JSON.parse(p.images || '[]'),
-        isFeatured: p.isFeatured,
-        isActive: p.isActive,
-        createdAt: p.createdAt.toISOString(),
-      }));
-    }
-  } catch (err) {
-    console.warn('Prisma getAllProductsAdmin fallback:', err);
-  }
-  return memoryProducts;
+  return getProducts();
 }
 
 export async function getProductById(id: string): Promise<ProductItem | null> {
-  try {
-    if (await isDatabaseAvailable()) {
-      const p: any = await prisma.product.findUnique({
-        where: { id },
-        include: { category: true },
-      });
-      if (!p) return null;
-      return {
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        price: p.price,
-        discountPrice: p.discountPrice,
-        stock: p.stock,
-        categoryId: p.categoryId,
-        categoryName: p.category?.name || 'General',
-        imageUrl: p.imageUrl,
-        images: JSON.parse(p.images || '[]'),
-        isFeatured: p.isFeatured,
-        isActive: p.isActive,
-        createdAt: p.createdAt.toISOString(),
-      };
-    }
-  } catch (err) {
-    console.warn('Prisma getProductById fallback:', err);
-  }
-  return memoryProducts.find((p) => p.id === id) || null;
+  const allProds = await getProducts();
+  return allProds.find((p) => p.id === id) || null;
 }
 
 export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' | 'categoryName'>): Promise<ProductItem> {
+  const catIds = data.categoryIds && data.categoryIds.length > 0 ? data.categoryIds : [data.categoryId];
+  const primaryCatId = catIds[0];
+
   try {
     if (await isDatabaseAvailable()) {
       const created: any = await prisma.product.create({
@@ -169,14 +145,18 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
           price: Number(data.price),
           discountPrice: data.discountPrice ? Number(data.discountPrice) : null,
           stock: Number(data.stock),
-          categoryId: data.categoryId,
+          categoryId: primaryCatId,
           imageUrl: data.imageUrl,
-          images: JSON.stringify(data.images || []),
+          images: `CAT:${JSON.stringify(catIds)}`,
           isFeatured: Boolean(data.isFeatured),
           isActive: Boolean(data.isActive),
         },
         include: { category: true },
       });
+      const allCategories = await getCategories();
+      const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+      const catNames = catIds.map((cid) => categoryMap.get(cid) || 'General').filter(Boolean);
+
       return {
         id: created.id,
         name: created.name,
@@ -185,10 +165,12 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
         price: created.price,
         discountPrice: created.discountPrice,
         stock: created.stock,
-        categoryId: created.categoryId,
-        categoryName: created.category?.name || 'General',
+        categoryId: primaryCatId,
+        categoryName: catNames.join(', ') || created.category?.name || 'General',
+        categoryIds: catIds,
+        categoryNames: catNames,
         imageUrl: created.imageUrl,
-        images: JSON.parse(created.images || '[]'),
+        images: [],
         isFeatured: created.isFeatured,
         isActive: created.isActive,
         createdAt: created.createdAt.toISOString(),
@@ -198,11 +180,17 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
     console.warn('Prisma createProduct fallback:', err);
   }
 
-  const categoryObj = memoryCategories.find((c) => c.id === data.categoryId);
+  const allCategories = await getCategories();
+  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+  const catNames = catIds.map((cid) => categoryMap.get(cid) || 'General').filter(Boolean);
+
   const newProd: ProductItem = {
     ...data,
     id: `prod-${Date.now()}`,
-    categoryName: categoryObj?.name || 'General',
+    categoryId: primaryCatId,
+    categoryName: catNames.join(', '),
+    categoryIds: catIds,
+    categoryNames: catNames,
     createdAt: new Date().toISOString(),
   };
   memoryProducts.unshift(newProd);
@@ -218,33 +206,22 @@ export async function updateProduct(id: string, data: Partial<ProductItem>): Pro
       if (data.price !== undefined) updateData.price = Number(data.price);
       if (data.discountPrice !== undefined) updateData.discountPrice = data.discountPrice ? Number(data.discountPrice) : null;
       if (data.stock !== undefined) updateData.stock = Number(data.stock);
-      if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+      if (data.categoryIds !== undefined && data.categoryIds.length > 0) {
+        updateData.categoryId = data.categoryIds[0];
+        updateData.images = `CAT:${JSON.stringify(data.categoryIds)}`;
+      } else if (data.categoryId !== undefined) {
+        updateData.categoryId = data.categoryId;
+        updateData.images = `CAT:${JSON.stringify([data.categoryId])}`;
+      }
       if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
-      if (data.images !== undefined) updateData.images = JSON.stringify(data.images);
       if (data.isFeatured !== undefined) updateData.isFeatured = Boolean(data.isFeatured);
       if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
 
-      const updated: any = await prisma.product.update({
+      await prisma.product.update({
         where: { id },
         data: updateData,
-        include: { category: true },
       });
-      return {
-        id: updated.id,
-        name: updated.name,
-        slug: updated.slug,
-        description: updated.description,
-        price: updated.price,
-        discountPrice: updated.discountPrice,
-        stock: updated.stock,
-        categoryId: updated.categoryId,
-        categoryName: updated.category?.name || 'General',
-        imageUrl: updated.imageUrl,
-        images: JSON.parse(updated.images || '[]'),
-        isFeatured: updated.isFeatured,
-        isActive: updated.isActive,
-        createdAt: updated.createdAt.toISOString(),
-      };
+      return getProductById(id);
     }
   } catch (err) {
     console.warn('Prisma updateProduct fallback:', err);
@@ -252,11 +229,9 @@ export async function updateProduct(id: string, data: Partial<ProductItem>): Pro
 
   const idx = memoryProducts.findIndex((p) => p.id === id);
   if (idx === -1) return null;
-  const categoryObj = data.categoryId ? memoryCategories.find((c) => c.id === data.categoryId) : undefined;
   memoryProducts[idx] = {
     ...memoryProducts[idx],
     ...data,
-    categoryName: categoryObj?.name || memoryProducts[idx].categoryName,
   };
   return memoryProducts[idx];
 }

@@ -8,6 +8,8 @@ export interface ProductItem {
   stock: number;
   categoryId: string;
   categoryName: string;
+  categoryIds?: string[];
+  categoryNames?: string[];
   imageUrl: string;
   images: string[];
   isFeatured: boolean;

@@ -31,13 +31,23 @@ export default function AdminProductsPage() {
   const [deletingProduct, setDeletingProduct] = useState<ProductItem | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    discountPrice: string;
+    stock: string;
+    categoryIds: string[];
+    imageUrl: string;
+    isFeatured: boolean;
+    isActive: boolean;
+  }>({
     name: '',
     description: '',
     price: '',
     discountPrice: '',
     stock: '',
-    categoryId: '',
+    categoryIds: [],
     imageUrl: '',
     isFeatured: false,
     isActive: true,
@@ -104,7 +114,7 @@ export default function AdminProductsPage() {
       price: '',
       discountPrice: '',
       stock: '10',
-      categoryId: categories[0]?.id || 'cat-1',
+      categoryIds: categories[0] ? [categories[0].id] : [],
       imageUrl: 'https://images.unsplash.com/photo-1606760227091-3dd858d9721b?auto=format&fit=crop&q=80&w=800',
       isFeatured: false,
       isActive: true,
@@ -121,7 +131,7 @@ export default function AdminProductsPage() {
       price: String(prod.price),
       discountPrice: prod.discountPrice ? String(prod.discountPrice) : '',
       stock: String(prod.stock),
-      categoryId: prod.categoryId,
+      categoryIds: prod.categoryIds && prod.categoryIds.length > 0 ? prod.categoryIds : [prod.categoryId],
       imageUrl: prod.imageUrl,
       isFeatured: prod.isFeatured,
       isActive: prod.isActive,
@@ -153,12 +163,24 @@ export default function AdminProductsPage() {
     }
   };
 
+  const toggleCategorySelection = (catId: string) => {
+    setFormData((prev) => {
+      const exists = prev.categoryIds.includes(catId);
+      if (exists) {
+        if (prev.categoryIds.length === 1) return prev; // Keep at least one category selected
+        return { ...prev, categoryIds: prev.categoryIds.filter((id) => id !== catId) };
+      } else {
+        return { ...prev, categoryIds: [...prev.categoryIds, catId] };
+      }
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.name.trim() || !formData.price || !formData.categoryId || !formData.imageUrl) {
-      setError('Please fill in all required product fields');
+    if (!formData.name.trim() || !formData.price || formData.categoryIds.length === 0 || !formData.imageUrl) {
+      setError('Please fill in all required product fields and select at least one category');
       return;
     }
 
@@ -168,7 +190,8 @@ export default function AdminProductsPage() {
       price: parseFloat(formData.price),
       discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : null,
       stock: parseInt(formData.stock, 10) || 0,
-      categoryId: formData.categoryId,
+      categoryId: formData.categoryIds[0],
+      categoryIds: formData.categoryIds,
       imageUrl: formData.imageUrl.trim(),
       isFeatured: formData.isFeatured,
       isActive: formData.isActive,
@@ -435,19 +458,34 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="font-bold uppercase tracking-wider text-stone-300">Category *</label>
-                <select
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-xs outline-none cursor-pointer"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-2">
+                <label className="font-bold uppercase tracking-wider text-stone-300 block">
+                  Select Categories * <span className="text-[10px] text-amber-400 font-normal lowercase">(multiple selection supported)</span>
+                </label>
+                <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                  {categories.map((c) => {
+                    const isChecked = formData.categoryIds.includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        onClick={() => toggleCategorySelection(c.id)}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors border ${
+                          isChecked
+                            ? 'bg-amber-950/40 border-amber-800/60 text-amber-200'
+                            : 'bg-stone-900/50 border-stone-800 text-stone-400 hover:text-stone-200'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                        />
+                        <span className="text-xs font-semibold select-none">{c.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-1.5">
