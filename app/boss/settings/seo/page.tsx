@@ -174,102 +174,7 @@ export default function AdminSEOSettingsPage() {
           </div>
         </div>
 
-        {/* Section 1.5: Top Announcement Banner */}
-        <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="flex items-center gap-3 pb-4 border-b border-stone-800">
-            <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center">
-              <Layout className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-serif text-lg font-bold text-amber-100">Top Announcement Banner Setup</h2>
-              <p className="text-xs text-stone-400">Configure phone (left), center discount text, and support email (right)</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="space-y-1.5">
-              <label className="font-bold uppercase tracking-wider text-stone-300">Left Phone Number</label>
-              <input
-                type="text"
-                name="topBannerPhone"
-                value={settings.topBannerPhone || ''}
-                onChange={handleChange}
-                placeholder="+880 1712-345678"
-                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="font-bold uppercase tracking-wider text-stone-300">Right Support Email</label>
-              <input
-                type="email"
-                name="topBannerEmail"
-                value={settings.topBannerEmail || ''}
-                onChange={handleChange}
-                placeholder="support@ranginsutarbunon.com"
-                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2 pt-2 border-t border-stone-800">
-              <div className="flex items-center justify-between">
-                <label className="font-bold uppercase tracking-wider text-amber-300">Center Discount Text Visibility</label>
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-200">
-                  <input
-                    type="checkbox"
-                    name="showTopBannerText"
-                    checked={settings.showTopBannerText !== false}
-                    onChange={(e) => setSettings({ ...settings, showTopBannerText: e.target.checked })}
-                    className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-                  />
-                  <span>Show Discount Text Banner in Header</span>
-                </label>
-              </div>
-            </div>
-
-            {settings.showTopBannerText !== false && (
-              <>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="font-bold uppercase tracking-wider text-stone-300">Center Discount Text</label>
-                  <input
-                    type="text"
-                    name="topBannerText"
-                    value={settings.topBannerText || ''}
-                    onChange={handleChange}
-                    placeholder="Get 50% Off On Selected Artisanal Items"
-                    className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="font-bold uppercase tracking-wider text-stone-300">Banner Link Text</label>
-                  <input
-                    type="text"
-                    name="topBannerLinkText"
-                    value={settings.topBannerLinkText || ''}
-                    onChange={handleChange}
-                    placeholder="Shop Now"
-                    className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="font-bold uppercase tracking-wider text-stone-300">Banner Link URL</label>
-                  <input
-                    type="text"
-                    name="topBannerLinkUrl"
-                    value={settings.topBannerLinkUrl || ''}
-                    onChange={handleChange}
-                    placeholder="/shop"
-                    className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Section 1.8: Footer Customization & Social Links */}
+        {/* Section 1.5: Footer Customization & Social Links */}
         <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
           <div className="flex items-center gap-3 pb-4 border-b border-stone-800">
             <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center">
@@ -384,6 +289,7 @@ export default function AdminSEOSettingsPage() {
             </div>
           </div>
         </div>
+
 
         {/* Section 2: Search Engine Metadata */}
         <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
