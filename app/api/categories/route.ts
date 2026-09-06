@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getCategories } from '@/lib/db';
+import { getCategories, createCategory } from '@/lib/db';
+import { getAdminSession } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -7,5 +8,24 @@ export async function GET() {
     return NextResponse.json(categories);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch categories' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    if (!body.name || !body.name.trim()) {
+      return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
+    }
+
+    const created = await createCategory(body.name);
+    return NextResponse.json(created, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to create category' }, { status: 500 });
   }
 }

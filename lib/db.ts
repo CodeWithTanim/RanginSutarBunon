@@ -293,6 +293,41 @@ export async function getCategories(): Promise<CategoryItem[]> {
   return memoryCategories;
 }
 
+export async function createCategory(name: string): Promise<CategoryItem> {
+  const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
+  try {
+    if (await isDatabaseAvailable()) {
+      const created = await prisma.category.create({
+        data: { name: name.trim(), slug },
+      });
+      return { id: created.id, name: created.name, slug: created.slug };
+    }
+  } catch (err) {
+    console.warn('Prisma createCategory fallback:', err);
+  }
+
+  const newCat: CategoryItem = {
+    id: `cat-${Date.now()}`,
+    name: name.trim(),
+    slug,
+  };
+  memoryCategories.push(newCat);
+  return newCat;
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
+  try {
+    if (await isDatabaseAvailable()) {
+      await prisma.category.delete({ where: { id } });
+      return true;
+    }
+  } catch (err) {
+    console.warn('Prisma deleteCategory fallback:', err);
+  }
+  memoryCategories = memoryCategories.filter((c) => c.id !== id);
+  return true;
+}
+
 // ---------------- ORDERS & CUSTOMERS ----------------
 
 export async function getOrders(): Promise<OrderRecord[]> {

@@ -24,6 +24,9 @@ export default function AdminProductsPage() {
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isCatModalOpen, setIsCatModalOpen] = useState<boolean>(false);
+  const [newCatName, setNewCatName] = useState<string>('');
+  const [addingCat, setAddingCat] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<ProductItem | null>(null);
 
@@ -42,6 +45,38 @@ export default function AdminProductsPage() {
 
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setAddingCat(true);
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCatName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create category');
+      setNewCatName('');
+      fetchProducts();
+    } catch (err: any) {
+      alert(err.message || 'Error creating category');
+    } finally {
+      setAddingCat(false);
+    }
+  };
+
+  const handleDeleteCategory = async (catId: string, catName: string) => {
+    if (!confirm(`Are you sure you want to delete category "${catName}"?`)) return;
+    try {
+      const res = await fetch(`/api/categories/${catId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete category');
+      fetchProducts();
+    } catch (err: any) {
+      alert(err.message || 'Error deleting category');
+    }
+  };
 
   const fetchProducts = () => {
     setLoading(true);
@@ -197,12 +232,20 @@ export default function AdminProductsPage() {
           <h1 className="font-serif text-3xl font-extrabold text-stone-100">Product Management</h1>
           <p className="text-xs text-stone-400">Add, edit, or toggle products in your online storefront</p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-105"
-        >
-          <Plus className="w-4 h-4" /> Add New Product
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsCatModalOpen(true)}
+            className="px-5 py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-105"
+          >
+            <Package className="w-4 h-4 text-amber-400" /> Manage Categories
+          </button>
+          <button
+            onClick={openAddModal}
+            className="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-105"
+          >
+            <Plus className="w-4 h-4" /> Add New Product
+          </button>
+        </div>
       </div>
 
       {/* Toolbar Search */}
@@ -478,16 +521,78 @@ export default function AdminProductsPage() {
             </p>
             <div className="pt-2 flex items-center justify-center gap-3">
               <button
-                onClick={() => setDeletingProduct(null)}
-                className="px-5 py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
                 onClick={handleDeleteConfirm}
                 className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg"
               >
                 Yes, Delete Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Management Modal */}
+      {isCatModalOpen && (
+        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 max-w-lg w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-stone-800 pb-4">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-stone-100">Category Management</h3>
+                <p className="text-xs text-stone-400">Add or delete store categories dynamically</p>
+              </div>
+              <button onClick={() => setIsCatModalOpen(false)} className="text-stone-400 hover:text-stone-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Add Category Form */}
+            <form onSubmit={handleAddCategory} className="flex gap-2 text-xs">
+              <input
+                type="text"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="Enter new category name..."
+                required
+                className="flex-1 px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+              />
+              <button
+                type="submit"
+                disabled={addingCat}
+                className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-xl shrink-0 flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> {addingCat ? 'Adding...' : 'Add'}
+              </button>
+            </form>
+
+            {/* Existing Categories List */}
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">Existing Categories ({categories.length})</h4>
+              {categories.length === 0 ? (
+                <p className="text-xs text-stone-500 italic py-2">No custom categories found.</p>
+              ) : (
+                <div className="space-y-2">
+                  {categories.map((c) => (
+                    <div key={c.id} className="p-3 bg-stone-950 border border-stone-800 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-semibold text-stone-200">{c.name}</span>
+                      <button
+                        onClick={() => handleDeleteCategory(c.id, c.name)}
+                        className="p-1.5 bg-rose-950/60 border border-rose-800/40 text-rose-400 hover:bg-rose-900 rounded-lg transition-colors"
+                        title="Delete Category"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex justify-end border-t border-stone-800">
+              <button
+                onClick={() => setIsCatModalOpen(false)}
+                className="px-5 py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs rounded-xl"
+              >
+                Close
               </button>
             </div>
           </div>
