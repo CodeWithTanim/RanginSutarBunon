@@ -102,10 +102,12 @@ export default function Footer() {
               <Phone className="w-4 h-4 text-[#003d29] shrink-0" />
               <span>{settings.footerPhone || '+880 1712-345678'}</span>
             </li>
-            <li className="flex items-center gap-2.5 text-gray-700">
-              <Mail className="w-4 h-4 text-[#003d29] shrink-0" />
-              <span>{settings.footerEmail || 'support@ranginsutarbunon.com'}</span>
-            </li>
+            {settings.footerEmail && (
+              <li className="flex items-center gap-2.5 text-gray-700">
+                <Mail className="w-4 h-4 text-[#003d29] shrink-0" />
+                <span>{settings.footerEmail}</span>
+              </li>
+            )}
             <li className="flex items-start gap-2.5 text-gray-700">
               <MapPin className="w-4 h-4 text-[#003d29] shrink-0 mt-0.5" />
               <span>{settings.footerAddress || 'Heritage Craft Cluster, Lake Road, Dhaka - 1209'}</span>

@@ -131,7 +131,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
 
   // Top Announcement Banner Defaults
   topBannerPhone: '+880 1700-000000',
-  topBannerEmail: 'support@ranginsutarbunon.com',
+  topBannerEmail: '',
   showTopBannerText: true,
   topBannerText: 'Welcome to Rangin Sutar Bunon',
   topBannerLinkText: 'Shop Now',
@@ -147,7 +147,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   // Footer Defaults
   footerAboutText: 'Celebrating rich quality and design. Bringing authentic products directly to your home.',
   footerPhone: '+880 1700-000000',
-  footerEmail: 'support@ranginsutarbunon.com',
+  footerEmail: '',
   footerAddress: 'Dhaka, Bangladesh',
   footerCopyright: '© 2026 Rangin Sutar Bunon. All rights reserved.',
 

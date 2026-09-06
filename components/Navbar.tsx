@@ -73,13 +73,15 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Right: Support Email */}
-        <div className="flex items-center gap-2 shrink-0 text-emerald-100">
-          <Mail className="w-3.5 h-3.5 text-emerald-300" />
-          <a href={`mailto:${settings.topBannerEmail || 'support@ranginsutarbunon.com'}`} className="hover:text-white transition">
-            {settings.topBannerEmail || 'support@ranginsutarbunon.com'}
-          </a>
-        </div>
+        {/* Right: Support Email (Show only if provided) */}
+        {settings.topBannerEmail && (
+          <div className="flex items-center gap-2 shrink-0 text-emerald-100">
+            <Mail className="w-3.5 h-3.5 text-emerald-300" />
+            <a href={`mailto:${settings.topBannerEmail}`} className="hover:text-white transition">
+              {settings.topBannerEmail}
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Main Header Container */}
