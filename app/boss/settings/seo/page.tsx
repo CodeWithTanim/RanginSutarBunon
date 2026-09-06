@@ -12,6 +12,7 @@ export default function AdminSEOSettingsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingLogo, setUploadingLogo] = useState<boolean>(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string>('');
 
   useEffect(() => {
@@ -45,6 +46,26 @@ export default function AdminSEOSettingsPage() {
       alert(err.message || 'Logo upload failed');
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFavicon(true);
+    const body = new FormData();
+    body.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setSettings((prev) => ({ ...prev, faviconUrl: data.url }));
+    } catch (err: any) {
+      alert(err.message || 'Favicon upload failed');
+    } finally {
+      setUploadingFavicon(false);
     }
   };
 
@@ -134,15 +155,21 @@ export default function AdminSEOSettingsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-bold uppercase tracking-wider text-stone-300">Browser Favicon URL</label>
-              <input
-                type="text"
-                name="faviconUrl"
-                value={settings.faviconUrl}
-                onChange={handleChange}
-                placeholder="/favicon.ico"
-                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
-              />
+              <label className="font-bold uppercase tracking-wider text-stone-300">Browser Favicon URL / Icon</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="faviconUrl"
+                  value={settings.faviconUrl}
+                  onChange={handleChange}
+                  placeholder="/favicon.ico or upload image"
+                  className="flex-1 px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+                />
+                <label className="px-4 py-3 bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold rounded-xl cursor-pointer flex items-center gap-1 shrink-0">
+                  <Upload className="w-4 h-4" /> {uploadingFavicon ? 'Uploading...' : 'Upload'}
+                  <input type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" />
+                </label>
+              </div>
             </div>
           </div>
         </div>
