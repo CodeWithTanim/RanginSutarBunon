@@ -50,27 +50,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Filter Pills Bar */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none text-xs font-semibold">
-          {categories.map((cat) => (
-            <Link
-              key={cat.id}
-              href={`/shop?category=${cat.id}`}
-              className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full whitespace-nowrap transition-colors flex items-center gap-1.5"
-            >
-              {cat.name} <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-            </Link>
-          ))}
 
-          <Link
-            href="/shop"
-            className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full whitespace-nowrap transition-colors flex items-center gap-1.5"
-          >
-            All Filters <SlidersHorizontal className="w-3.5 h-3.5 text-gray-500" />
-          </Link>
-        </div>
-      </section>
 
       {/* Main Section Heading & Product Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
