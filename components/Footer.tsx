@@ -159,8 +159,16 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-gray-200 text-center text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-4">
         <p>{settings.footerCopyright || `© ${new Date().getFullYear()} Rangin Sutar Bunon. All rights reserved.`}</p>
-        <p className="flex items-center gap-1">
-          Crafted with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" /> for artisanal craftsmanship
+        <p>
+          Created by{' '}
+          <a
+            href="https://github.com/CodeWithTanim"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-[#003d29] hover:underline"
+          >
+            CodeWithTanim
+          </a>
         </p>
       </div>
     </footer>
