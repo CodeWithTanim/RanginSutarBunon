@@ -218,8 +218,13 @@ export default function AdminProductsPage() {
         throw new Error(d.error || 'Failed to save product');
       }
 
+      const savedProduct = await res.json();
       setIsModalOpen(false);
-      fetchProducts();
+      if (editingProduct) {
+        setProducts((prev) => prev.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
+      } else {
+        setProducts((prev) => [savedProduct, ...prev]);
+      }
     } catch (err: any) {
       setError(err.message || 'Error saving product');
     }

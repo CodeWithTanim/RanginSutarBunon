@@ -127,8 +127,46 @@ export async function getAllProductsAdmin(): Promise<ProductItem[]> {
 }
 
 export async function getProductById(id: string): Promise<ProductItem | null> {
-  const allProds = await getProducts();
-  return allProds.find((p) => p.id === id) || null;
+  try {
+    if (await isDatabaseAvailable()) {
+      const p: any = await prisma.product.findUnique({
+        where: { id },
+        include: { category: true },
+      });
+      if (!p) return null;
+      let catIds: string[] = [];
+      try {
+        if (p.images && p.images.startsWith('CAT:')) {
+          catIds = JSON.parse(p.images.substring(4));
+        } else {
+          catIds = [p.categoryId];
+        }
+      } catch {
+        catIds = [p.categoryId];
+      }
+      return {
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        price: p.price,
+        discountPrice: p.discountPrice,
+        stock: p.stock,
+        categoryId: p.categoryId,
+        categoryName: p.category?.name || 'General',
+        categoryIds: catIds,
+        categoryNames: [p.category?.name || 'General'],
+        imageUrl: p.imageUrl,
+        images: [],
+        isFeatured: p.isFeatured,
+        isActive: p.isActive,
+        createdAt: p.createdAt.toISOString(),
+      };
+    }
+  } catch (err) {
+    console.warn('Prisma getProductById fallback:', err);
+  }
+  return memoryProducts.find((p) => p.id === id) || null;
 }
 
 export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' | 'categoryName'>): Promise<ProductItem> {
@@ -153,9 +191,6 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
         },
         include: { category: true },
       });
-      const allCategories = await getCategories();
-      const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
-      const catNames = catIds.map((cid) => categoryMap.get(cid) || 'General').filter(Boolean);
 
       return {
         id: created.id,
@@ -166,9 +201,9 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
         discountPrice: created.discountPrice,
         stock: created.stock,
         categoryId: primaryCatId,
-        categoryName: catNames.join(', ') || created.category?.name || 'General',
+        categoryName: created.category?.name || 'General',
         categoryIds: catIds,
-        categoryNames: catNames,
+        categoryNames: [created.category?.name || 'General'],
         imageUrl: created.imageUrl,
         images: [],
         isFeatured: created.isFeatured,
@@ -180,17 +215,13 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
     console.warn('Prisma createProduct fallback:', err);
   }
 
-  const allCategories = await getCategories();
-  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
-  const catNames = catIds.map((cid) => categoryMap.get(cid) || 'General').filter(Boolean);
-
   const newProd: ProductItem = {
     ...data,
     id: `prod-${Date.now()}`,
     categoryId: primaryCatId,
-    categoryName: catNames.join(', '),
+    categoryName: 'General',
     categoryIds: catIds,
-    categoryNames: catNames,
+    categoryNames: ['General'],
     createdAt: new Date().toISOString(),
   };
   memoryProducts.unshift(newProd);
@@ -217,11 +248,41 @@ export async function updateProduct(id: string, data: Partial<ProductItem>): Pro
       if (data.isFeatured !== undefined) updateData.isFeatured = Boolean(data.isFeatured);
       if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
 
-      await prisma.product.update({
+      const updated: any = await prisma.product.update({
         where: { id },
         data: updateData,
+        include: { category: true },
       });
-      return getProductById(id);
+
+      let catIds: string[] = [];
+      try {
+        if (updated.images && updated.images.startsWith('CAT:')) {
+          catIds = JSON.parse(updated.images.substring(4));
+        } else {
+          catIds = [updated.categoryId];
+        }
+      } catch {
+        catIds = [updated.categoryId];
+      }
+
+      return {
+        id: updated.id,
+        name: updated.name,
+        slug: updated.slug,
+        description: updated.description,
+        price: updated.price,
+        discountPrice: updated.discountPrice,
+        stock: updated.stock,
+        categoryId: updated.categoryId,
+        categoryName: updated.category?.name || 'General',
+        categoryIds: catIds,
+        categoryNames: [updated.category?.name || 'General'],
+        imageUrl: updated.imageUrl,
+        images: [],
+        isFeatured: updated.isFeatured,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt.toISOString(),
+      };
     }
   } catch (err) {
     console.warn('Prisma updateProduct fallback:', err);
