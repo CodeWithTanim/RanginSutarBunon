@@ -145,7 +145,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   heroHeadline: 'Grab Special Offers On Our Collection',
   heroSubheadline: 'Explore our latest collection of items handcrafted with care and quality.',
   heroCtaText: 'Buy Now',
-  heroImageUrl: 'https://images.unsplash.com/photo-1606760227091-3dd858d9721b?auto=format&fit=crop&q=80&w=1000',
+  heroImageUrl: '/uploads/Items/Hero-Section.png',
 
   // Footer Defaults
   footerAboutText: 'Celebrating rich quality and design. Bringing authentic products directly to your home.',

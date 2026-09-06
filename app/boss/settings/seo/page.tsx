@@ -13,6 +13,7 @@ export default function AdminSEOSettingsPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [uploadingLogo, setUploadingLogo] = useState<boolean>(false);
   const [uploadingFavicon, setUploadingFavicon] = useState<boolean>(false);
+  const [uploadingHero, setUploadingHero] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string>('');
 
   useEffect(() => {
@@ -66,6 +67,26 @@ export default function AdminSEOSettingsPage() {
       alert(err.message || 'Favicon upload failed');
     } finally {
       setUploadingFavicon(false);
+    }
+  };
+
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHero(true);
+    const body = new FormData();
+    body.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setSettings((prev) => ({ ...prev, heroImageUrl: data.url }));
+    } catch (err: any) {
+      alert(err.message || 'Hero image upload failed');
+    } finally {
+      setUploadingHero(false);
     }
   };
 
@@ -169,6 +190,77 @@ export default function AdminSEOSettingsPage() {
                   <Upload className="w-4 h-4" /> {uploadingFavicon ? 'Uploading...' : 'Upload'}
                   <input type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" />
                 </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 1.2: Homepage Hero Section Customization */}
+        <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex items-center gap-3 pb-4 border-b border-stone-800">
+            <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-800/40 text-amber-400 flex items-center justify-center">
+              <ImageIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-serif text-lg font-bold text-amber-100">Homepage Hero Banner & Image Customization</h2>
+              <p className="text-xs text-stone-400">Configure hero section headline, subheadline, button text, and hero showcase image</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase tracking-wider text-stone-300">Hero Section Main Headline</label>
+              <input
+                type="text"
+                name="heroHeadline"
+                value={settings.heroHeadline || ''}
+                onChange={handleChange}
+                placeholder="Grab Special Offers On Our Collection"
+                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase tracking-wider text-stone-300">Hero Section Subheadline</label>
+              <textarea
+                rows={2}
+                name="heroSubheadline"
+                value={settings.heroSubheadline || ''}
+                onChange={handleChange}
+                placeholder="Explore our latest collection of items handcrafted with care and quality."
+                className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="font-bold uppercase tracking-wider text-stone-300">Button CTA Text</label>
+                <input
+                  type="text"
+                  name="heroCtaText"
+                  value={settings.heroCtaText || ''}
+                  onChange={handleChange}
+                  placeholder="Buy Now"
+                  className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-bold uppercase tracking-wider text-stone-300">Hero Showcase Image URL</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="heroImageUrl"
+                    value={settings.heroImageUrl || ''}
+                    onChange={handleChange}
+                    placeholder="/uploads/Items/Hero-Section.png"
+                    className="flex-1 px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl outline-none"
+                  />
+                  <label className="px-4 py-3 bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold rounded-xl cursor-pointer flex items-center gap-1 shrink-0">
+                    <Upload className="w-4 h-4" /> {uploadingHero ? 'Uploading...' : 'Upload'}
+                    <input type="file" accept="image/*" onChange={handleHeroUpload} className="hidden" />
+                  </label>
+                </div>
               </div>
             </div>
           </div>

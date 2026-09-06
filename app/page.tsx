@@ -41,7 +41,7 @@ export default async function HomePage() {
           <div className="relative w-full lg:w-1/2 aspect-[4/3] max-w-md lg:max-w-none">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={settings.heroImageUrl || 'https://images.unsplash.com/photo-1606760227091-3dd858d9721b?auto=format&fit=crop&q=80&w=1000'}
+              src={settings.heroImageUrl || '/uploads/Items/Hero-Section.png'}
               alt="Artisanal Heritage Showcase"
               className="w-full h-full object-cover rounded-3xl shadow-xl border-4 border-white"
             />
