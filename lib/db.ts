@@ -191,6 +191,7 @@ export async function getProductById(id: string): Promise<ProductItem | null> {
 }
 
 export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' | 'categoryName'>): Promise<ProductItem> {
+  cachedProducts = null;
   const catIds = data.categoryIds && data.categoryIds.length > 0 ? data.categoryIds : [data.categoryId];
   const primaryCatId = catIds[0];
 
@@ -251,6 +252,7 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
 }
 
 export async function updateProduct(id: string, data: Partial<ProductItem>): Promise<ProductItem | null> {
+  cachedProducts = null;
   try {
     if (await isDatabaseAvailable()) {
       const updateData: any = {};
@@ -321,6 +323,7 @@ export async function updateProduct(id: string, data: Partial<ProductItem>): Pro
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
+  cachedProducts = null;
   try {
     if (await isDatabaseAvailable()) {
       await prisma.product.delete({ where: { id } });
