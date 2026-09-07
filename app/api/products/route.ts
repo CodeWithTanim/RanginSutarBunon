@@ -10,7 +10,11 @@ export async function GET(request: Request) {
 
   try {
     const products = await getProducts({ categoryId, search, featuredOnly: featured });
-    return NextResponse.json(products);
+    return NextResponse.json(products, {
+      headers: {
+        'Cache-Control': 'public, max-age=5, stale-while-revalidate=59',
+      },
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch products' }, { status: 500 });
   }

@@ -5,7 +5,11 @@ import { getAdminSession } from '@/lib/auth';
 export async function GET() {
   try {
     const settings = await getSettings();
-    return NextResponse.json(settings);
+    return NextResponse.json(settings, {
+      headers: {
+        'Cache-Control': 'public, max-age=10, stale-while-revalidate=59',
+      },
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch settings' }, { status: 500 });
   }

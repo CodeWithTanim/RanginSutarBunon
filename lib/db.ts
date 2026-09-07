@@ -190,22 +190,44 @@ export async function getProductById(id: string): Promise<ProductItem | null> {
   return memoryProducts.find((p) => p.id === id) || null;
 }
 
+async function ensureValidCategoryId(catId?: string): Promise<string> {
+  if (!catId) {
+    const first = await prisma.category.findFirst().catch(() => null);
+    if (first) return first.id;
+    const created = await prisma.category.create({ data: { name: 'General', slug: `general-${Date.now()}` } }).catch(() => null);
+    return created ? created.id : 'general';
+  }
+  const existing = await prisma.category.findUnique({ where: { id: catId } }).catch(() => null);
+  if (existing) return existing.id;
+
+  const first = await prisma.category.findFirst().catch(() => null);
+  if (first) return first.id;
+
+  const created = await prisma.category.create({ data: { name: 'General', slug: `general-${Date.now()}` } }).catch(() => null);
+  return created ? created.id : catId;
+}
+
 export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' | 'categoryName'>): Promise<ProductItem> {
   cachedProducts = null;
   const catIds = data.categoryIds && data.categoryIds.length > 0 ? data.categoryIds : [data.categoryId];
-  const primaryCatId = catIds[0];
+  const rawPrimaryCatId = catIds[0];
+
+  const baseSlugPart = encodeURIComponent(data.name.trim().toLowerCase()).replace(/%/g, '').substring(0, 30) || 'product';
+  const uniqueSlug = `${baseSlugPart}-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
 
   try {
     if (await isDatabaseAvailable()) {
+      const validCatId = await ensureValidCategoryId(rawPrimaryCatId);
+
       const created: any = await prisma.product.create({
         data: {
           name: data.name,
-          slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          slug: uniqueSlug,
           description: data.description,
           price: Number(data.price),
           discountPrice: data.discountPrice ? Number(data.discountPrice) : null,
           stock: Number(data.stock),
-          categoryId: primaryCatId,
+          categoryId: validCatId,
           imageUrl: data.imageUrl,
           images: `CAT:${JSON.stringify(catIds)}`,
           isFeatured: Boolean(data.isFeatured),
@@ -222,7 +244,7 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
         price: created.price,
         discountPrice: created.discountPrice,
         stock: created.stock,
-        categoryId: primaryCatId,
+        categoryId: validCatId,
         categoryName: created.category?.name || 'General',
         categoryIds: catIds,
         categoryNames: [created.category?.name || 'General'],
@@ -234,14 +256,13 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
       };
     }
   } catch (err) {
-    console.warn('Prisma createProduct fallback:', err);
+    console.error('Prisma createProduct error:', err);
   }
 
-  cachedProducts = null;
   const newProd: ProductItem = {
     ...data,
     id: `prod-${Date.now()}`,
-    categoryId: primaryCatId,
+    categoryId: rawPrimaryCatId,
     categoryName: 'General',
     categoryIds: catIds,
     categoryNames: ['General'],
@@ -262,64 +283,88 @@ export async function updateProduct(id: string, data: Partial<ProductItem>): Pro
       if (data.discountPrice !== undefined) updateData.discountPrice = data.discountPrice ? Number(data.discountPrice) : null;
       if (data.stock !== undefined) updateData.stock = Number(data.stock);
       if (data.categoryIds !== undefined && data.categoryIds.length > 0) {
-        updateData.categoryId = data.categoryIds[0];
+        const validCatId = await ensureValidCategoryId(data.categoryIds[0]);
+        updateData.categoryId = validCatId;
         updateData.images = `CAT:${JSON.stringify(data.categoryIds)}`;
       } else if (data.categoryId !== undefined) {
-        updateData.categoryId = data.categoryId;
+        const validCatId = await ensureValidCategoryId(data.categoryId);
+        updateData.categoryId = validCatId;
         updateData.images = `CAT:${JSON.stringify([data.categoryId])}`;
       }
       if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
       if (data.isFeatured !== undefined) updateData.isFeatured = Boolean(data.isFeatured);
       if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
 
-      const updated: any = await prisma.product.update({
-        where: { id },
-        data: updateData,
-        include: { category: true },
-      });
+      const existingInDb = await prisma.product.findUnique({ where: { id } }).catch(() => null);
+      if (existingInDb) {
+        const updated: any = await prisma.product.update({
+          where: { id },
+          data: updateData,
+          include: { category: true },
+        });
 
-      let catIds: string[] = [];
-      try {
-        if (updated.images && updated.images.startsWith('CAT:')) {
-          catIds = JSON.parse(updated.images.substring(4));
-        } else {
+        let catIds: string[] = [];
+        try {
+          if (updated.images && updated.images.startsWith('CAT:')) {
+            catIds = JSON.parse(updated.images.substring(4));
+          } else {
+            catIds = [updated.categoryId];
+          }
+        } catch {
           catIds = [updated.categoryId];
         }
-      } catch {
-        catIds = [updated.categoryId];
-      }
 
-      return {
-        id: updated.id,
-        name: updated.name,
-        slug: updated.slug,
-        description: updated.description,
-        price: updated.price,
-        discountPrice: updated.discountPrice,
-        stock: updated.stock,
-        categoryId: updated.categoryId,
-        categoryName: updated.category?.name || 'General',
-        categoryIds: catIds,
-        categoryNames: [updated.category?.name || 'General'],
-        imageUrl: updated.imageUrl,
-        images: [],
-        isFeatured: updated.isFeatured,
-        isActive: updated.isActive,
-        createdAt: updated.createdAt.toISOString(),
-      };
+        return {
+          id: updated.id,
+          name: updated.name,
+          slug: updated.slug,
+          description: updated.description,
+          price: updated.price,
+          discountPrice: updated.discountPrice,
+          stock: updated.stock,
+          categoryId: updated.categoryId,
+          categoryName: updated.category?.name || 'General',
+          categoryIds: catIds,
+          categoryNames: [updated.category?.name || 'General'],
+          imageUrl: updated.imageUrl,
+          images: [],
+          isFeatured: updated.isFeatured,
+          isActive: updated.isActive,
+          createdAt: updated.createdAt.toISOString(),
+        };
+      }
     }
   } catch (err) {
-    console.warn('Prisma updateProduct fallback:', err);
+    console.error('Prisma updateProduct error:', err);
   }
 
-  cachedProducts = null;
   const idx = memoryProducts.findIndex((p) => p.id === id);
-  if (idx === -1) return null;
-  memoryProducts[idx] = {
-    ...memoryProducts[idx],
-    ...data,
-  };
-  return memoryProducts[idx];
+  if (idx !== -1) {
+    memoryProducts[idx] = {
+      ...memoryProducts[idx],
+      ...data,
+    };
+    return memoryProducts[idx];
+  }
+
+  if (data.name && data.price) {
+    return createProduct({
+      name: data.name,
+      description: data.description || '',
+      price: data.price,
+      discountPrice: data.discountPrice,
+      stock: data.stock || 10,
+      categoryId: data.categoryId || 'general',
+      categoryIds: data.categoryIds || [],
+      imageUrl: data.imageUrl || '',
+      isFeatured: Boolean(data.isFeatured),
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+      images: [],
+      slug: '',
+    });
+  }
+
+  return null;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
