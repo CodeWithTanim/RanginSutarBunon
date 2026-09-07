@@ -31,7 +31,7 @@ export default function Navbar() {
         if (data && data.authenticated) setCustomerLoggedIn(true);
       })
       .catch(() => {});
-  }, [pathname]);
+  }, []);
 
   // Hide Main Header in Admin Panel (/boss)
   if (pathname.startsWith('/boss')) {

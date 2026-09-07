@@ -22,7 +22,7 @@ export default function Footer() {
         if (data) setSettings((prev) => ({ ...prev, ...data }));
       })
       .catch(() => {});
-  }, [pathname]);
+  }, []);
 
   const hasSocials = Boolean(settings.facebookUrl || settings.instagramUrl || settings.youtubeUrl);
 

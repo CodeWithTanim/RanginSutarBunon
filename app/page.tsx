@@ -8,10 +8,12 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const featuredProducts = await getProducts({ featuredOnly: true });
-  const allProducts = await getProducts();
-  const categories = await getCategories();
-  const settings = await getSettings();
+  const [featuredProducts, allProducts, categories, settings] = await Promise.all([
+    getProducts({ featuredOnly: true }),
+    getProducts(),
+    getCategories(),
+    getSettings(),
+  ]);
 
   return (
     <div className="space-y-12 pb-16">

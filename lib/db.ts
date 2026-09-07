@@ -40,9 +40,6 @@ export async function getProducts(options?: {
   search?: string;
   featuredOnly?: boolean;
 }): Promise<ProductItem[]> {
-  const allCategories = await getCategories();
-  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
-
   try {
     if (await isDatabaseAvailable()) {
       const where: any = { isActive: true };
@@ -55,11 +52,16 @@ export async function getProducts(options?: {
           { description: { contains: options.search, mode: 'insensitive' } },
         ];
       }
-      const dbProducts = await prisma.product.findMany({
-        where,
-        include: { category: true },
-        orderBy: { createdAt: 'desc' },
-      });
+      const [dbProducts, allCategories] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: { category: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        getCategories(),
+      ]);
+
+      const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
 
       const parsedList = dbProducts.map((p: any) => {
         let catIds: string[] = [];
