@@ -29,8 +29,29 @@ let memoryOrders: OrderRecord[] = [...INITIAL_ORDERS];
 let memoryCustomers: CustomerRecord[] = [...INITIAL_CUSTOMERS];
 let memorySettings: SiteSettings = { ...DEFAULT_SETTINGS };
 
+let dbAvailableCache: boolean | null = null;
 async function isDatabaseAvailable(): Promise<boolean> {
-  return Boolean(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref'));
+  if (dbAvailableCache === null) {
+    dbAvailableCache = Boolean(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref'));
+  }
+  return dbAvailableCache;
+}
+
+let cachedProducts: ProductItem[] | null = null;
+let cachedProductsTime = 0;
+let cachedCategories: CategoryItem[] | null = null;
+let cachedCategoriesTime = 0;
+let cachedSettings: SiteSettings | null = null;
+let cachedSettingsTime = 0;
+const CACHE_TTL_MS = 30000; // 30 seconds TTL
+
+export function clearDbCache() {
+  cachedProducts = null;
+  cachedProductsTime = 0;
+  cachedCategories = null;
+  cachedCategoriesTime = 0;
+  cachedSettings = null;
+  cachedSettingsTime = 0;
 }
 
 // ---------------- PRODUCTS ----------------
@@ -40,80 +61,78 @@ export async function getProducts(options?: {
   search?: string;
   featuredOnly?: boolean;
 }): Promise<ProductItem[]> {
-  try {
-    if (await isDatabaseAvailable()) {
-      const where: any = { isActive: true };
-      if (options?.featuredOnly) {
-        where.isFeatured = true;
-      }
-      if (options?.search) {
-        where.OR = [
-          { name: { contains: options.search, mode: 'insensitive' } },
-          { description: { contains: options.search, mode: 'insensitive' } },
-        ];
-      }
-      const [dbProducts, allCategories] = await Promise.all([
-        prisma.product.findMany({
-          where,
-          include: { category: true },
-          orderBy: { createdAt: 'desc' },
-        }),
-        getCategories(),
-      ]);
+  const now = Date.now();
+  let allProds: ProductItem[] = [];
 
-      const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+  if (cachedProducts && now - cachedProductsTime < CACHE_TTL_MS) {
+    allProds = cachedProducts;
+  } else {
+    try {
+      if (await isDatabaseAvailable()) {
+        const [dbProducts, allCategories] = await Promise.all([
+          prisma.product.findMany({
+            where: { isActive: true },
+            include: { category: true },
+            orderBy: { createdAt: 'desc' },
+          }),
+          getCategories(),
+        ]);
 
-      const parsedList = dbProducts.map((p: any) => {
-        let catIds: string[] = [];
-        try {
-          if (p.images && p.images.startsWith('CAT:')) {
-            catIds = JSON.parse(p.images.substring(4));
-          } else {
+        const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+
+        allProds = dbProducts.map((p: any) => {
+          let catIds: string[] = [];
+          try {
+            if (p.images && p.images.startsWith('CAT:')) {
+              catIds = JSON.parse(p.images.substring(4));
+            } else {
+              catIds = [p.categoryId];
+            }
+          } catch {
             catIds = [p.categoryId];
           }
-        } catch {
-          catIds = [p.categoryId];
-        }
-        if (!catIds.includes(p.categoryId)) {
-          catIds.push(p.categoryId);
-        }
-        const catNames = catIds.map((cid) => categoryMap.get(cid) || (cid === p.categoryId ? p.category?.name : '') || 'General').filter(Boolean);
+          if (!catIds.includes(p.categoryId)) {
+            catIds.push(p.categoryId);
+          }
+          const catNames = catIds.map((cid) => categoryMap.get(cid) || (cid === p.categoryId ? p.category?.name : '') || 'General').filter(Boolean);
 
-        return {
-          id: p.id,
-          name: p.name,
-          slug: p.slug,
-          description: p.description,
-          price: p.price,
-          discountPrice: p.discountPrice,
-          stock: p.stock,
-          categoryId: p.categoryId,
-          categoryName: catNames.join(', ') || p.category?.name || 'General',
-          categoryIds: catIds,
-          categoryNames: catNames,
-          imageUrl: p.imageUrl,
-          images: [],
-          isFeatured: p.isFeatured,
-          isActive: p.isActive,
-          createdAt: p.createdAt.toISOString(),
-        };
-      });
+          return {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            description: p.description,
+            price: p.price,
+            discountPrice: p.discountPrice,
+            stock: p.stock,
+            categoryId: p.categoryId,
+            categoryName: catNames.join(', ') || p.category?.name || 'General',
+            categoryIds: catIds,
+            categoryNames: catNames,
+            imageUrl: p.imageUrl,
+            images: [],
+            isFeatured: p.isFeatured,
+            isActive: p.isActive,
+            createdAt: p.createdAt.toISOString(),
+          };
+        });
 
-      if (options?.categoryId && options.categoryId !== 'all') {
-        return parsedList.filter((p) => p.categoryIds?.includes(options.categoryId!));
+        cachedProducts = allProds;
+        cachedProductsTime = now;
+      } else {
+        allProds = memoryProducts.filter((p) => p.isActive);
       }
-      return parsedList;
+    } catch (err) {
+      console.warn('Prisma getProducts fallback to memory:', err);
+      allProds = memoryProducts.filter((p) => p.isActive);
     }
-  } catch (err) {
-    console.warn('Prisma getProducts fallback to memory:', err);
   }
 
-  let list = memoryProducts.filter((p) => p.isActive);
-  if (options?.categoryId && options.categoryId !== 'all') {
-    list = list.filter((p) => p.categoryIds?.includes(options.categoryId!) || p.categoryId === options.categoryId);
-  }
+  let list = allProds;
   if (options?.featuredOnly) {
     list = list.filter((p) => p.isFeatured);
+  }
+  if (options?.categoryId && options.categoryId !== 'all') {
+    list = list.filter((p) => p.categoryIds?.includes(options.categoryId!) || p.categoryId === options.categoryId);
   }
   if (options?.search) {
     const q = options.search.toLowerCase();
@@ -217,6 +236,7 @@ export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' |
     console.warn('Prisma createProduct fallback:', err);
   }
 
+  cachedProducts = null;
   const newProd: ProductItem = {
     ...data,
     id: `prod-${Date.now()}`,
@@ -290,6 +310,7 @@ export async function updateProduct(id: string, data: Partial<ProductItem>): Pro
     console.warn('Prisma updateProduct fallback:', err);
   }
 
+  cachedProducts = null;
   const idx = memoryProducts.findIndex((p) => p.id === id);
   if (idx === -1) return null;
   memoryProducts[idx] = {
@@ -309,6 +330,7 @@ export async function deleteProduct(id: string): Promise<boolean> {
     console.warn('Prisma deleteProduct fallback:', err);
   }
 
+  cachedProducts = null;
   const idx = memoryProducts.findIndex((p) => p.id === id);
   if (idx !== -1) {
     memoryProducts.splice(idx, 1);
@@ -320,10 +342,18 @@ export async function deleteProduct(id: string): Promise<boolean> {
 // ---------------- CATEGORIES ----------------
 
 export async function getCategories(): Promise<CategoryItem[]> {
+  const now = Date.now();
+  if (cachedCategories && now - cachedCategoriesTime < CACHE_TTL_MS) {
+    return cachedCategories;
+  }
+
   try {
     if (await isDatabaseAvailable()) {
       const cats = await prisma.category.findMany({ orderBy: { name: 'asc' } });
-      return cats.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug }));
+      const mapped = cats.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug }));
+      cachedCategories = mapped;
+      cachedCategoriesTime = now;
+      return mapped;
     }
   } catch (err) {
     console.warn('Prisma getCategories fallback:', err);
@@ -332,6 +362,8 @@ export async function getCategories(): Promise<CategoryItem[]> {
 }
 
 export async function createCategory(name: string): Promise<CategoryItem> {
+  cachedCategories = null;
+  cachedProducts = null;
   const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
   try {
     if (await isDatabaseAvailable()) {
@@ -354,6 +386,8 @@ export async function createCategory(name: string): Promise<CategoryItem> {
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
+  cachedCategories = null;
+  cachedProducts = null;
   try {
     if (await isDatabaseAvailable()) {
       await prisma.category.delete({ where: { id } });
@@ -693,6 +727,11 @@ export async function getCustomers(): Promise<CustomerRecord[]> {
 // ---------------- SETTINGS ----------------
 
 export async function getSettings(): Promise<SiteSettings> {
+  const now = Date.now();
+  if (cachedSettings && now - cachedSettingsTime < CACHE_TTL_MS) {
+    return cachedSettings;
+  }
+
   try {
     if (await isDatabaseAvailable()) {
       const settingsRecords = await prisma.setting.findMany();
@@ -703,6 +742,8 @@ export async function getSettings(): Promise<SiteSettings> {
             (merged as any)[s.key] = s.key === 'deliveryCharge' ? Number(s.value) : s.value;
           }
         }
+        cachedSettings = merged;
+        cachedSettingsTime = now;
         return merged;
       }
     }
@@ -713,6 +754,7 @@ export async function getSettings(): Promise<SiteSettings> {
 }
 
 export async function updateSettings(newSettings: Partial<SiteSettings>): Promise<SiteSettings> {
+  cachedSettings = null;
   try {
     if (await isDatabaseAvailable()) {
       const current = await getSettings();
