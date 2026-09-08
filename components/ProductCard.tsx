@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Heart, Star, Sparkles } from 'lucide-react';
+import { ShoppingBag, Heart, Sparkles } from 'lucide-react';
 import { ProductItem } from '@/lib/initialData';
 import { useCart } from '@/context/CartContext';
 
@@ -56,13 +56,6 @@ export default function ProductCard({ product }: { product: ProductItem }) {
           </div>
 
           <p className="text-xs text-gray-500 line-clamp-1 mt-1">{product.description}</p>
-
-          <div className="flex items-center gap-1 mt-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star key={star} className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
-            ))}
-            <span className="text-[11px] text-gray-500 font-semibold ml-1">(121)</span>
-          </div>
         </div>
 
         <div className="pt-2">
