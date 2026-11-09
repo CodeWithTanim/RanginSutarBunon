@@ -271,13 +271,13 @@ export default function CustomerAccountDashboard() {
       </div>
 
       {/* Account Navigation Tabs */}
-      <div className="flex border-b border-stone-800 text-sm font-semibold gap-6">
+      <div className="flex border-b border-gray-200 text-sm font-semibold gap-6">
         <button
           onClick={() => setActiveTab('orders')}
           className={`pb-3.5 flex items-center gap-2 transition-all ${
             activeTab === 'orders'
-              ? 'text-amber-400 border-b-2 border-amber-400 font-bold'
-              : 'text-stone-400 hover:text-stone-200'
+              ? 'text-emerald-900 border-b-2 border-emerald-900 font-bold'
+              : 'text-gray-500 hover:text-gray-900'
           }`}
         >
           <ShoppingBag className="w-4 h-4" />
@@ -288,8 +288,8 @@ export default function CustomerAccountDashboard() {
           onClick={() => setActiveTab('profile')}
           className={`pb-3.5 flex items-center gap-2 transition-all ${
             activeTab === 'profile'
-              ? 'text-amber-400 border-b-2 border-amber-400 font-bold'
-              : 'text-stone-400 hover:text-stone-200'
+              ? 'text-emerald-900 border-b-2 border-emerald-900 font-bold'
+              : 'text-gray-500 hover:text-gray-900'
           }`}
         >
           <Settings className="w-4 h-4" />
@@ -301,9 +301,13 @@ export default function CustomerAccountDashboard() {
       {activeTab === 'orders' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-serif text-xl font-bold text-stone-100">Order History & Track Progress</h2>
-            <Link href="/shop" className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1">
-              Shop More <ArrowRight className="w-4 h-4" />
+            <h2 className="font-serif text-2xl font-bold text-gray-900">Order History & Track Progress</h2>
+            <Link
+              href="/shop"
+              className="text-xs font-bold text-[#003d29] hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
+            >
+              <span>Shop More</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
