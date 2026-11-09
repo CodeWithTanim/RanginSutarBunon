@@ -105,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Customer Directory', href: '/boss/customers', icon: Users },
     { name: 'Delivery Charge Settings', href: '/boss/settings/delivery', icon: Truck },
     { name: 'SEO & Site Branding', href: '/boss/settings/seo', icon: Globe },
-    { name: 'Telegram Order Alerts', href: '/boss/settings/telegram', icon: Send },
+    { name: 'Telegram Bot Alerts', href: '/boss/settings/telegram', icon: Send },
     { name: 'Admin Login Security', href: '/boss/settings/security', icon: KeyRound },
   ];
 

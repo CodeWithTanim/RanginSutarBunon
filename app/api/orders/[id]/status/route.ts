@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { updateOrderStatus } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
+import { sendTelegramOrderStatusNotification } from '@/lib/telegram';
 
 export async function PATCH(
   request: Request,
@@ -22,6 +23,13 @@ export async function PATCH(
     if (!success) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
+
+    // Non-blocking Telegram notification to admins
+    sendTelegramOrderStatusNotification({
+      orderId: id,
+      newStatus: status,
+      updatedBy: session.username,
+    }).catch((err) => console.error('[Order Status Alert] Telegram warning:', err));
 
     return NextResponse.json({ success: true, orderId: id, newStatus: status });
   } catch (error: any) {

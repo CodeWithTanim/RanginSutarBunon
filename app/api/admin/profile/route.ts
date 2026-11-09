@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminSession, createAdminToken, setAdminSessionCookie } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
+import { sendTelegramAdminProfileChangeNotification } from '@/lib/telegram';
 import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
@@ -103,6 +104,18 @@ export async function PUT(request: Request) {
       role: 'ADMIN',
     });
     await setAdminSessionCookie(newToken);
+
+    // Send Telegram Security Notification
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'Local / Unknown IP';
+
+    sendTelegramAdminProfileChangeNotification({
+      previousUsername: session.username,
+      updatedUsername,
+      passwordChanged: Boolean(newPassword && newPassword.trim()),
+      nameChanged: Boolean(newName && newName.trim()),
+      ip,
+    }).catch((err) => console.error('[Profile Security Alert] Telegram warning:', err));
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminToken, setAdminSessionCookie, getAdminUserFromDb } from '@/lib/auth';
+import { sendTelegramAdminLoginNotification } from '@/lib/telegram';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
@@ -9,6 +10,10 @@ export async function POST(request: Request) {
     if (!username || !password) {
       return NextResponse.json({ error: 'Username and password required' }, { status: 400 });
     }
+
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'Local / Unknown IP';
+    const userAgent = request.headers.get('user-agent') || 'Browser Device';
 
     let isValid = false;
 
@@ -30,8 +35,24 @@ export async function POST(request: Request) {
     }
 
     if (!isValid) {
+      // Send Failed Login Attempt Security Alert
+      sendTelegramAdminLoginNotification({
+        username,
+        ip,
+        userAgent,
+        success: false,
+      }).catch((err) => console.error('[Login Security Alert] Telegram warning:', err));
+
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
+
+    // Send Successful Login Notification
+    sendTelegramAdminLoginNotification({
+      username,
+      ip,
+      userAgent,
+      success: true,
+    }).catch((err) => console.error('[Login Notification] Telegram warning:', err));
 
     const token = await createAdminToken({ username, role: 'ADMIN' });
     await setAdminSessionCookie(token);

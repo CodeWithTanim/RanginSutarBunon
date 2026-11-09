@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
+import { sendTelegramCustomerRegistrationNotification } from '@/lib/telegram';
 import bcrypt from 'bcryptjs';
 import { createCustomerToken, setCustomerSessionCookie } from '@/lib/customerAuth';
 
@@ -69,6 +70,14 @@ export async function POST(request: Request) {
       name: name.trim(),
     });
     await setCustomerSessionCookie(token);
+
+    // Non-blocking Telegram notification to admins
+    sendTelegramCustomerRegistrationNotification({
+      name: name.trim(),
+      mobile: cleanMobile,
+      address: address.trim(),
+      city: city.trim(),
+    }).catch((err) => console.error('[Customer Register Alert] Telegram warning:', err));
 
     return NextResponse.json({
       success: true,

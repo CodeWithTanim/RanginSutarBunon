@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createContactMessage, getContactMessages } from '@/lib/db';
+import { sendTelegramContactNotification } from '@/lib/telegram';
 
 export async function POST(req: Request) {
   try {
@@ -20,6 +21,15 @@ export async function POST(req: Request) {
       subject: subject || null,
       message,
     });
+
+    // Non-blocking Telegram notification to admins
+    sendTelegramContactNotification({
+      name,
+      email,
+      phone,
+      subject,
+      message,
+    }).catch((err) => console.error('[Contact Form] Telegram alert warning:', err));
 
     return NextResponse.json({ success: true, message: newMessage }, { status: 201 });
   } catch (error: any) {

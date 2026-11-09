@@ -111,11 +111,44 @@ export default function TelegramSettingsPage() {
       <div>
         <div className="flex items-center gap-2.5 text-amber-400 mb-1">
           <Send className="w-6 h-6" />
-          <h1 className="font-serif text-2xl font-bold text-stone-100">Telegram Instant Order Alerts</h1>
+          <h1 className="font-serif text-2xl font-bold text-stone-100">Telegram Store Notifications &amp; Alerts</h1>
         </div>
         <p className="text-xs text-stone-400">
-          Receive real-time notifications directly in Telegram whenever a customer places an order. Supports multiple store administrators.
+          Receive instant real-time Telegram notifications for all store events: New Orders, Order Status Changes, Admin Sign-Ins &amp; Security Alerts, Contact Form Inquiries, and Customer Registrations. Supports multiple administrators.
         </p>
+      </div>
+
+      {/* Covered Notification Channels Card */}
+      <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 space-y-3">
+        <h2 className="text-xs font-bold text-amber-300 uppercase tracking-widest flex items-center gap-2">
+          <Bell className="w-4 h-4 text-amber-400" /> Supported Instant Telegram Notifications:
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs text-stone-300">
+          <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-1">
+            <span className="font-bold text-stone-100">🛍️ New Customer Orders</span>
+            <p className="text-[11px] text-stone-400">Complete items list, customer phone, delivery address &amp; COD total.</p>
+          </div>
+          <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-1">
+            <span className="font-bold text-stone-100">🔄 Order Status Changes</span>
+            <p className="text-[11px] text-stone-400">Live alerts when orders are Confirmed, Shipped, Delivered, or Cancelled.</p>
+          </div>
+          <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-1">
+            <span className="font-bold text-stone-100">🔐 Admin Sign-Ins &amp; Security</span>
+            <p className="text-[11px] text-stone-400">Instant alerts on admin logins and failed password attempts with IP &amp; device.</p>
+          </div>
+          <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-1">
+            <span className="font-bold text-stone-100">📩 Contact Form Messages</span>
+            <p className="text-[11px] text-stone-400">Visitor message body, sender name, email, and phone number.</p>
+          </div>
+          <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-1">
+            <span className="font-bold text-stone-100">🎉 Customer Sign-Ups</span>
+            <p className="text-[11px] text-stone-400">Alerts when new buyers register an account on the store.</p>
+          </div>
+          <div className="p-3 bg-stone-950 border border-stone-800 rounded-xl space-y-1">
+            <span className="font-bold text-stone-100">🛡️ Admin Profile Updates</span>
+            <p className="text-[11px] text-stone-400">Security warnings whenever admin username or password is modified.</p>
+          </div>
+        </div>
       </div>
 
       {statusMessage && (
@@ -140,10 +173,10 @@ export default function TelegramSettingsPage() {
         <div className="flex items-center justify-between p-4 bg-stone-950 border border-stone-800 rounded-2xl">
           <div className="space-y-0.5">
             <span className="text-sm font-bold text-stone-100 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-amber-400" /> Enable Telegram Order Notifications
+              <Bell className="w-4 h-4 text-amber-400" /> Enable All Telegram Store Notifications
             </span>
             <p className="text-xs text-stone-400">
-              When enabled, a complete order breakdown will be sent instantly to all configured Telegram admin chats.
+              When enabled, instant alerts for Orders, Status Updates, Admin Logins, Security Events, Contact Form Messages, and Customer Registrations will be sent to all configured admin chats.
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
