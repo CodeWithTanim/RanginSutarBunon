@@ -26,9 +26,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [settings, setSettings] = useState<{ logoUrl?: string; siteTitle?: string }>({
+    logoUrl: '',
+    siteTitle: 'Rangin Sutar Bunon',
+  });
 
   // Skip auth check if on login page
   const isLoginPage = pathname === '/boss/login';
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('rsb_settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSettings(parsed);
+      }
+    } catch {}
+
+    fetch('/api/settings')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data === 'object') {
+          setSettings((prev) => ({ ...prev, ...data }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isLoginPage) {
@@ -90,13 +113,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col md:flex-row">
       {/* Mobile Top Navbar */}
       <div className="md:hidden bg-stone-900 border-b border-stone-800 p-4 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-amber-400" />
-          <span className="font-serif font-bold text-amber-200 text-sm">Admin Dashboard</span>
-        </div>
+        <Link href="/boss" className="flex items-center gap-2.5 min-w-0">
+          {settings.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logoUrl} alt="Store Logo" className="h-7 w-auto object-contain rounded shrink-0" />
+          ) : (
+            <div className="w-7 h-7 rounded-lg bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-xs shadow-sm shrink-0">
+              RS
+            </div>
+          )}
+          <span className="font-serif font-bold text-stone-100 text-sm truncate">
+            {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
+          </span>
+          <span className="bg-amber-500 text-stone-950 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded shadow-sm tracking-wider shrink-0">
+            ADMIN
+          </span>
+        </Link>
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 text-stone-300 hover:text-white rounded-lg hover:bg-stone-800"
+          className="p-2 text-stone-300 hover:text-white rounded-lg hover:bg-stone-800 shrink-0"
         >
           {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -110,13 +145,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <div className="space-y-8">
           {/* Header Brand */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-amber-400">
-              <ShieldCheck className="w-5 h-5" />
-              <span className="font-serif text-lg font-bold text-stone-100">Store Admin</span>
+          <Link href="/boss" className="flex items-center gap-3 group">
+            {settings.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={settings.logoUrl}
+                alt="Store Logo"
+                className="h-10 w-auto max-w-[120px] object-contain rounded-lg shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-lg shadow-sm shrink-0">
+                RS
+              </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-serif text-base font-bold tracking-tight text-stone-100 group-hover:text-amber-400 transition-colors truncate">
+                  {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
+                </span>
+                <span className="bg-amber-500 text-stone-950 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded shadow-sm tracking-wider shrink-0">
+                  ADMIN
+                </span>
+              </div>
+              <p className="text-[10px] text-stone-400 uppercase tracking-widest">
+                Management Portal
+              </p>
             </div>
-            <p className="text-[11px] text-stone-400 uppercase tracking-widest">Rangin Sutar Bunon</p>
-          </div>
+          </Link>
 
           {/* Navigation Links */}
           <nav className="space-y-1.5">
