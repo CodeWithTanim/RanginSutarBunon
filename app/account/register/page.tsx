@@ -52,7 +52,11 @@ export default function CustomerRegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      router.push('/account');
+      const redirectTarget =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('redirect') || '/account'
+          : '/account';
+      router.push(redirectTarget);
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Error creating account');

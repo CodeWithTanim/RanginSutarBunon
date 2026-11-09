@@ -36,7 +36,11 @@ export default function CustomerLoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      router.push('/account');
+      const redirectTarget =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('redirect') || '/account'
+          : '/account';
+      router.push(redirectTarget);
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Invalid mobile number or password');

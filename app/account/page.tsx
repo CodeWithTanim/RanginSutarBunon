@@ -94,11 +94,11 @@ export default function CustomerAccountDashboard() {
           setExtraMobiles(data.customer.extraMobiles || []);
           setExtraAddresses(data.customer.extraAddresses || []);
         } else {
-          router.push('/account/login');
+          router.replace('/account/login');
         }
       })
       .catch(() => {
-        router.push('/account/login');
+        router.replace('/account/login');
       })
       .finally(() => setLoading(false));
   }, [router]);
@@ -191,7 +191,25 @@ export default function CustomerAccountDashboard() {
     );
   }
 
-  if (!customer) return null;
+  if (!customer) {
+    return (
+      <div className="py-24 text-center space-y-4 max-w-md mx-auto px-4">
+        <div className="w-16 h-16 rounded-2xl bg-amber-950/80 border border-amber-700/50 text-amber-400 flex items-center justify-center mx-auto shadow-lg">
+          <User className="w-8 h-8" />
+        </div>
+        <h2 className="font-serif text-2xl font-bold text-gray-900">লগইন প্রয়োজন</h2>
+        <p className="text-xs text-stone-500">
+          প্রোফাইল দেখতে অনুগ্রহ করে আগে আপনার অ্যাকাউন্টে লগইন করুন। আপনাকে লগইন পেজে নিয়ে যাওয়া হচ্ছে...
+        </p>
+        <Link
+          href="/account/login"
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#003d29] text-white font-bold text-xs rounded-xl hover:bg-[#00281b] transition-colors shadow-md"
+        >
+          লগইন পেজে যান <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    );
+  }
 
   const totalOrders = orders.length;
   const pendingOrders = orders.filter((o) => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
