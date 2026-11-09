@@ -117,8 +117,8 @@ export default function CustomerAccountDashboard() {
   // Add Extra Mobile Number
   const handleAddMobile = () => {
     const clean = newMobile.trim();
-    if (!/^\d{10,11}$/.test(clean)) {
-      alert('Please enter a valid 10 or 11 digit mobile number');
+    if (!/^01\d{9}$/.test(clean)) {
+      alert('Please enter a valid 11-digit Bangladesh mobile number starting with 01 (e.g., 01712345678)');
       return;
     }
     if (clean === profileForm.mobile || extraMobiles.includes(clean)) {

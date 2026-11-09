@@ -94,16 +94,16 @@ export default function CustomerRegisterPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-bold uppercase tracking-wider text-stone-300">10-Digit Mobile Number *</label>
+            <label className="font-bold uppercase tracking-wider text-stone-300">Mobile Number (11-Digit) *</label>
             <input
               type="tel"
               name="mobile"
               value={formData.mobile}
               onChange={handleChange}
               required
-              maxLength={10}
-              placeholder="e.g. 9876543210"
-              className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-sm outline-none"
+              maxLength={11}
+              placeholder="e.g. 01712345678"
+              className="w-full px-4 py-3 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-sm outline-none font-mono"
             />
           </div>
 

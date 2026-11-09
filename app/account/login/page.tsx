@@ -73,9 +73,9 @@ export default function CustomerLoginPage() {
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
                 required
-                maxLength={10}
-                placeholder="e.g. 9876543210"
-                className="w-full pl-11 pr-4 py-3.5 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-sm outline-none"
+                maxLength={11}
+                placeholder="e.g. 01712345678"
+                className="w-full pl-11 pr-4 py-3.5 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-sm outline-none font-mono"
               />
             </div>
           </div>
