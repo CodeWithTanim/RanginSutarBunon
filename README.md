@@ -2,14 +2,14 @@
 
 A modern, high-performance E-Commerce platform for **Rangin Sutar Bunon** — authentic Bengali handcrafted textiles, Jamdani, silk shawls, terracotta pottery, and artisan home decor.
 
-Built with **Next.js**, **React**, **TypeScript**, **Better Auth**, **shadcn/ui**, **Tailwind CSS**, and **MongoDB**.
+Built with **Next.js 16**, **React 19**, **TypeScript**, **Better Auth**, **shadcn/ui**, **Tailwind CSS**, and **MongoDB Atlas**.
 
 ---
 
 ## 🚀 Key Features
 
 - **⚡ Blazing Fast Loading Speed**: Instant edge-cached static rendering (ISR) and optimized queries so the storefront loads immediately on entry.
-- **🍃 MongoDB Database**: High-performance MongoDB Atlas connection with singleton connection pooling.
+- **🍃 MongoDB Database**: High-performance MongoDB Atlas connection with singleton connection pooling and retry resilience.
 - **🔐 Better Auth**: Modern, secure authentication with credentials, session management, and role-based permissions.
 - **🎨 shadcn/ui Components**: Clean, accessible, beautifully crafted UI components.
 - **👑 Dedicated Boss / Admin Panel (`/boss`)**:
@@ -35,6 +35,7 @@ MONGODB_DB=rangin-sutar-bunon
 
 BETTER_AUTH_SECRET=your-better-auth-secret
 BETTER_AUTH_URL=https://rangin-sutar-bunon.vercel.app
+JWT_SECRET=your-jwt-secret-key
 
 ```
 
@@ -46,16 +47,25 @@ BETTER_AUTH_URL=https://rangin-sutar-bunon.vercel.app
 # 1. Install dependencies
 npm install
 
-# 2. Seed initial data (Admin user, categories, products, settings)
-npx tsx scripts/seed-mongo.ts
-
-# 3. Start local development server
+# 2. Start local development server
 npm run dev
 
-# 4. Production build
+# 3. Production build
 npm run build
 npm start
 ```
+
+---
+
+## 🔄 Database Utilities
+
+- **Restore Data from Supabase**:
+  ```bash
+  npx tsx scripts/restore-from-supabase.ts
+  ```
+
+- **Health Check Endpoint**:
+  Access `/api/health` to verify MongoDB database connectivity, ping latency, and serverless runtime status.
 
 ---
 
