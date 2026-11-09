@@ -112,6 +112,11 @@ export interface SiteSettings {
   aboutStat2Label: string;
   aboutStat3Value: string;
   aboutStat3Label: string;
+
+  // Telegram Order Bot Notifications
+  telegramBotToken: string;
+  telegramChatIds: string;
+  telegramEnabled: boolean;
 }
 
 export const INITIAL_CATEGORIES: CategoryItem[] = [];
@@ -171,4 +176,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   aboutStat2Label: 'Customer Support',
   aboutStat3Value: 'COD',
   aboutStat3Label: 'Nationwide Delivery',
+
+  // Telegram Order Bot Defaults
+  telegramBotToken: '',
+  telegramChatIds: '',
+  telegramEnabled: false,
 };

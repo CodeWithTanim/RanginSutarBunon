@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOrders, createOrder } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
+import { sendTelegramOrderNotification } from '@/lib/telegram';
 
 export async function GET() {
   const session = await getAdminSession();
@@ -46,6 +47,11 @@ export async function POST(request: Request) {
       pincode: pincode.trim(),
       note: note ? note.trim() : null,
       items,
+    });
+
+    // Send Telegram Order Notification to all Admins asynchronously
+    sendTelegramOrderNotification(order).catch((err) => {
+      console.warn('[Telegram Notification] Non-blocking dispatch error:', err);
     });
 
     return NextResponse.json(order, { status: 201 });
