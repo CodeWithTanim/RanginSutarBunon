@@ -36,7 +36,6 @@ MONGODB_DB=rangin-sutar-bunon
 BETTER_AUTH_SECRET=your-better-auth-secret
 BETTER_AUTH_URL=https://rangin-sutar-bunon.vercel.app
 JWT_SECRET=your-jwt-secret-key
-
 ```
 
 ---

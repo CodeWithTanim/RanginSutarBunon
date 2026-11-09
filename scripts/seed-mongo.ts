@@ -24,29 +24,34 @@ async function main() {
   await client.connect();
   const db = client.db(dbName);
 
-  // 1. Seed Admin User
-  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  // 1. Seed Admin User (only if explicitly set in environment)
+  const adminUsername = process.env.ADMIN_USERNAME;
   const adminPassword = process.env.ADMIN_PASSWORD;
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-  await db.collection('users').updateOne(
-    { username: adminUsername },
-    {
-      $set: {
-        username: adminUsername,
-        name: 'Store Manager',
-        passwordHash,
-        role: 'ADMIN',
-        updatedAt: new Date().toISOString(),
+  if (adminUsername && adminPassword) {
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+    await db.collection('users').updateOne(
+      { username: adminUsername },
+      {
+        $set: {
+          username: adminUsername,
+          name: 'Store Manager',
+          passwordHash,
+          role: 'ADMIN',
+          updatedAt: new Date().toISOString(),
+        },
+        $setOnInsert: {
+          id: `user-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+        },
       },
-      $setOnInsert: {
-        id: `user-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-      },
-    },
-    { upsert: true }
-  );
-  console.log(`✅ Admin user seeded: "${adminUsername}" / "${adminPassword}"`);
+      { upsert: true }
+    );
+    console.log(`✅ Admin user seeded for username: "${adminUsername}"`);
+  } else {
+    console.log('ℹ️ Admin user seed skipped (no ADMIN_USERNAME/ADMIN_PASSWORD provided in .env)');
+  }
 
   // 2. Seed Categories
   for (const cat of INITIAL_CATEGORIES) {

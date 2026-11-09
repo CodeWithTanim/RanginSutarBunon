@@ -22,11 +22,9 @@ export async function POST(request: Request) {
       console.warn('MongoDB admin check warning:', err);
     }
 
-    // 2. Default Fallback Admin Check from .env
-    if (!isValid) {
-      const defaultUser = process.env.ADMIN_USERNAME || 'admin';
-      const defaultPass = process.env.ADMIN_PASSWORD;
-      if (username === defaultUser && password === defaultPass) {
+    // 2. Optional Environment Variable Admin Check (only if explicitly configured)
+    if (!isValid && process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) {
+      if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
         isValid = true;
       }
     }
