@@ -15,27 +15,41 @@ if (!uri) {
   console.warn('⚠️ MONGODB_URI is not defined in environment variables. Database operations will fail.');
 }
 
+const mongoOptions = {
+  maxPoolSize: 20,
+  minPoolSize: 2,
+  serverSelectionTimeoutMS: 15000,
+  connectTimeoutMS: 15000,
+  retryWrites: true,
+  retryReads: true,
+};
+
+async function connectWithRetry(retries = 3, delay = 1000): Promise<MongoClient> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const mc = new MongoClient(uri, mongoOptions);
+      const connected = await mc.connect();
+      return connected;
+    } catch (err: any) {
+      if (attempt === retries) throw err;
+      console.warn(`[MongoDB] Connection attempt ${attempt} failed, retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay * attempt));
+    }
+  }
+  throw new Error('[MongoDB] Unable to connect after retries');
+}
+
 if (process.env.NODE_ENV === 'development') {
   if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, {
-      maxPoolSize: 20,
-      minPoolSize: 2,
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
-    });
-    global._mongoClientPromise = client.connect();
+    global._mongoClientPromise = connectWithRetry();
   }
   clientPromise = global._mongoClientPromise;
 } else {
   if (!client) {
-    client = new MongoClient(uri, {
-      maxPoolSize: 20,
-      minPoolSize: 2,
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
-    });
+    clientPromise = connectWithRetry();
+  } else {
+    clientPromise = Promise.resolve(client);
   }
-  clientPromise = client.connect();
 }
 
 export default clientPromise;
@@ -77,7 +91,6 @@ export async function ensureIndexes(): Promise<void> {
     ]);
     indexesEnsured = true;
   } catch (err) {
-    // Continue even if index creation warning happens
     console.warn('Index check note:', err);
   }
 }
