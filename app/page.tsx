@@ -53,8 +53,7 @@ export default async function HomePage() {
             <img
               src={settings.heroImageUrl || '/uploads/Items/Hero-Section.png'}
               alt="Artisanal Heritage Showcase"
-              // @ts-ignore
-              fetchpriority="high"
+              fetchPriority="high"
               loading="eager"
               decoding="async"
               className="w-full h-full object-cover rounded-3xl shadow-xl border-4 border-white"
