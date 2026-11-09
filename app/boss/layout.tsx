@@ -116,15 +116,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link href="/boss" className="flex items-center gap-2.5 min-w-0">
           {settings.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={settings.logoUrl} alt="Store Logo" className="h-7 w-auto object-contain rounded shrink-0" />
+            <img src={settings.logoUrl} alt="Store Logo" className="h-7 w-auto max-w-[110px] object-contain shrink-0" />
           ) : (
             <div className="w-7 h-7 rounded-lg bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-xs shadow-sm shrink-0">
               RS
             </div>
           )}
-          <span className="font-serif font-bold text-stone-100 text-sm truncate">
-            {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
-          </span>
           <span className="bg-amber-500 text-stone-950 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded shadow-sm tracking-wider shrink-0">
             ADMIN
           </span>
@@ -145,32 +142,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <div className="space-y-8">
           {/* Header Brand */}
-          <Link href="/boss" className="flex items-center gap-3 group">
+          <Link href="/boss" className="flex items-center gap-2.5 group">
             {settings.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={settings.logoUrl}
                 alt="Store Logo"
-                className="h-10 w-auto max-w-[120px] object-contain rounded-lg shrink-0"
+                className="h-9 w-auto max-w-[130px] object-contain shrink-0 group-hover:opacity-90 transition-opacity"
               />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-lg shadow-sm shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-base shadow-sm shrink-0">
                 RS
               </div>
             )}
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-serif text-base font-bold tracking-tight text-stone-100 group-hover:text-amber-400 transition-colors truncate">
-                  {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
-                </span>
-                <span className="bg-amber-500 text-stone-950 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded shadow-sm tracking-wider shrink-0">
-                  ADMIN
-                </span>
-              </div>
-              <p className="text-[10px] text-stone-400 uppercase tracking-widest">
-                Management Portal
-              </p>
-            </div>
+            <span className="bg-amber-500 text-stone-950 text-[11px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm tracking-wider shrink-0">
+              ADMIN
+            </span>
           </Link>
 
           {/* Navigation Links */}

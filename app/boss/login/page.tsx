@@ -62,28 +62,24 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md bg-stone-900 border border-stone-800 rounded-3xl p-8 space-y-8 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-amber-600/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="text-center space-y-3">
-          {settings.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={settings.logoUrl}
-              alt="Store Logo"
-              className="h-12 w-auto max-w-[160px] object-contain mx-auto rounded-xl"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-2xl bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-2xl mx-auto shadow-lg">
-              RS
-            </div>
-          )}
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <h1 className="font-serif text-2xl font-bold text-stone-100">
-              {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
-            </h1>
-            <span className="bg-amber-500 text-stone-950 text-xs font-extrabold uppercase px-2 py-0.5 rounded shadow-sm tracking-wider">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            {settings.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={settings.logoUrl}
+                alt="Store Logo"
+                className="h-12 w-auto max-w-[200px] object-contain"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-2xl shadow-lg">
+                RS
+              </div>
+            )}
+            <span className="bg-amber-500 text-stone-950 text-xs font-extrabold uppercase px-2.5 py-1 rounded shadow-sm tracking-wider">
               ADMIN
             </span>
           </div>
-          <p className="text-xs text-stone-400">Management Dashboard Portal</p>
         </div>
 
         {error && (
