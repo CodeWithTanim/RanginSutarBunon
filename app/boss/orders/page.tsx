@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   ShoppingBag,
   Search,
@@ -54,9 +55,10 @@ export default function AdminOrdersPage() {
     try {
       const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete order');
+      toast.success(`Order #${orderId} deleted successfully!`);
       fetchOrders();
     } catch (err: any) {
-      alert(err.message || 'Error deleting order');
+      toast.error(err.message || 'Error deleting order');
     }
   };
 
@@ -79,8 +81,9 @@ export default function AdminOrdersPage() {
       if (activeOrder && activeOrder.id === orderId) {
         setActiveOrder((prev) => (prev ? { ...prev, status: newStatus } : null));
       }
+      toast.success(`Order #${orderId} status updated to "${newStatus}"!`);
     } catch (err: any) {
-      alert(err.message || 'Could not update status');
+      toast.error(err.message || 'Could not update status');
     }
   };
 

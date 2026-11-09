@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Users, Search, Eye, MapPin, ShoppingBag, X, Trash2 } from 'lucide-react';
 import { CustomerRecord, OrderRecord } from '@/lib/initialData';
 
@@ -34,9 +35,10 @@ export default function AdminCustomersPage() {
     try {
       const res = await fetch(`/api/customers/${customerId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete customer');
+      toast.success('Customer profile deleted successfully!');
       fetchCustomers();
     } catch (err: any) {
-      alert(err.message || 'Error deleting customer');
+      toast.error(err.message || 'Error deleting customer');
     }
   };
 

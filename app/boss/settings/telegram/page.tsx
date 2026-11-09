@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Send, CheckCircle2, AlertCircle, Save, HelpCircle, Bell, Users, ExternalLink } from 'lucide-react';
 import { SiteSettings, DEFAULT_SETTINGS } from '@/lib/initialData';
 
@@ -43,12 +44,16 @@ export default function TelegramSettingsPage() {
         throw new Error('Failed to save Telegram settings');
       }
 
+      const msg = 'Telegram Bot settings saved successfully! All configured admins will receive real-time alerts.';
       setStatusMessage({
         type: 'success',
-        text: 'Telegram Bot settings saved successfully! All configured admins will receive real-time order alerts.',
+        text: msg,
       });
+      toast.success(msg);
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error saving settings.' });
+      const errMsg = err.message || 'Error saving settings.';
+      setStatusMessage({ type: 'error', text: errMsg });
+      toast.error(errMsg);
     } finally {
       setSaving(false);
     }
@@ -57,10 +62,12 @@ export default function TelegramSettingsPage() {
   const handleSendTest = async () => {
     if (!settings.telegramBotToken?.trim()) {
       setStatusMessage({ type: 'error', text: 'Please enter a Telegram Bot Token first.' });
+      toast.error('Please enter a Telegram Bot Token first.');
       return;
     }
     if (!settings.telegramChatIds?.trim()) {
       setStatusMessage({ type: 'error', text: 'Please enter at least one Telegram Admin Chat ID.' });
+      toast.error('Please enter at least one Telegram Admin Chat ID.');
       return;
     }
 
@@ -83,19 +90,25 @@ export default function TelegramSettingsPage() {
       }
 
       if (data.sentCount > 0) {
+        const msg = `Test notification sent successfully to ${data.sentCount} of ${data.totalCount} admin(s)!`;
         setStatusMessage({
           type: 'success',
-          text: `✅ Test notification sent successfully to ${data.sentCount} of ${data.totalCount} admin(s)! Check your Telegram app.`,
+          text: `✅ ${msg} Check your Telegram app.`,
         });
+        toast.success(msg);
       } else {
         const errorDetails = data.errors?.map((e: any) => `${e.chatId}: ${e.error}`).join(', ');
+        const errMsg = `Could not deliver to admins: ${errorDetails || 'Unknown error'}`;
         setStatusMessage({
           type: 'error',
-          text: `❌ Could not deliver to admins. Errors: ${errorDetails || 'Unknown error'}. Make sure admins have clicked "Start" in the bot.`,
+          text: `❌ ${errMsg}. Make sure admins have clicked "Start" in the bot.`,
         });
+        toast.error(errMsg);
       }
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message || 'Failed to communicate with Telegram API.' });
+      const errMsg = err.message || 'Failed to communicate with Telegram API.';
+      setStatusMessage({ type: 'error', text: errMsg });
+      toast.error(errMsg);
     } finally {
       setTesting(false);
     }

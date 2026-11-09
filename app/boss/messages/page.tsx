@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Mail, Phone, User, Calendar, Trash2, CheckCircle2, Clock, Search, MessageSquare, AlertCircle } from 'lucide-react';
 
 interface ContactMessageRecord {
@@ -48,9 +49,12 @@ export default function AdminContactMessagesPage() {
         setMessages((prev) =>
           prev.map((msg) => (msg.id === id ? { ...msg, isRead: !currentStatus } : msg))
         );
+        toast.success(currentStatus ? 'Message marked as unread' : 'Message marked as read');
+      } else {
+        toast.error('Failed to update message status');
       }
     } catch (err) {
-      alert('Failed to update status');
+      toast.error('Failed to update status');
     }
   };
 
@@ -60,9 +64,12 @@ export default function AdminContactMessagesPage() {
       const res = await fetch(`/api/contact/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setMessages((prev) => prev.filter((msg) => msg.id !== id));
+        toast.success('Message deleted successfully!');
+      } else {
+        toast.error('Failed to delete message');
       }
     } catch (err) {
-      alert('Failed to delete message');
+      toast.error('Failed to delete message');
     }
   };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Globe, CheckCircle2, Upload, Sparkles, Image as ImageIcon, Layout } from 'lucide-react';
 import { SiteSettings, DEFAULT_SETTINGS } from '@/lib/initialData';
 
@@ -43,8 +44,9 @@ export default function AdminSEOSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       setSettings((prev) => ({ ...prev, logoUrl: data.url }));
+      toast.success('Logo uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Logo upload failed');
+      toast.error(err.message || 'Logo upload failed');
     } finally {
       setUploadingLogo(false);
     }
@@ -63,8 +65,9 @@ export default function AdminSEOSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       setSettings((prev) => ({ ...prev, faviconUrl: data.url }));
+      toast.success('Favicon uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Favicon upload failed');
+      toast.error(err.message || 'Favicon upload failed');
     } finally {
       setUploadingFavicon(false);
     }
@@ -83,8 +86,9 @@ export default function AdminSEOSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       setSettings((prev) => ({ ...prev, heroImageUrl: data.url }));
+      toast.success('Hero banner uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Hero image upload failed');
+      toast.error(err.message || 'Hero image upload failed');
     } finally {
       setUploadingHero(false);
     }
@@ -107,9 +111,10 @@ export default function AdminSEOSettingsPage() {
       }
 
       setSuccessMsg('SEO Metadata & Branding Settings updated successfully!');
+      toast.success('SEO & Branding settings updated successfully!');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Error saving SEO settings');
+      toast.error(err.message || 'Error saving SEO settings');
     } finally {
       setSaving(false);
     }

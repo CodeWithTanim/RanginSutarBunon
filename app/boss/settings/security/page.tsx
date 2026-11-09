@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { ShieldCheck, KeyRound, User, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 
 export default function AdminSecurityPage() {
@@ -43,11 +44,13 @@ export default function AdminSecurityPage() {
 
     if (newPassword && newPassword.length < 6) {
       setMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      toast.error('New password must be at least 6 characters long.');
       return;
     }
 
     if (newPassword && newPassword !== confirmPassword) {
       setMessage({ type: 'error', text: 'New password and confirmation do not match.' });
+      toast.error('New password and confirmation do not match.');
       return;
     }
 
@@ -70,13 +73,17 @@ export default function AdminSecurityPage() {
         throw new Error(data.error || 'Failed to update credentials');
       }
 
-      setMessage({ type: 'success', text: data.message || 'Credentials updated successfully!' });
+      const successText = data.message || 'Credentials updated successfully!';
+      setMessage({ type: 'success', text: successText });
+      toast.success(successText);
       setCurrentUsername(data.username || newUsername);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'An error occurred while updating.' });
+      const errorText = err.message || 'An error occurred while updating.';
+      setMessage({ type: 'error', text: errorText });
+      toast.error(errorText);
     } finally {
       setLoading(false);
     }

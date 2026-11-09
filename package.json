@@ -22,6 +22,7 @@
     "pg": "^8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-hot-toast": "^2.6.1",
     "tailwind-merge": "^3.6.0",
     "text-encoding": "^0.7.0"
   },

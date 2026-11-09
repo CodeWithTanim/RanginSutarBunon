@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { Lock, User, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -48,10 +49,13 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
+      toast.success('Welcome back, Admin!');
       router.push('/boss');
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Invalid username or password');
+      const errMsg = err.message || 'Invalid username or password';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }

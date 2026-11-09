@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { Toaster } from 'react-hot-toast';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -206,7 +207,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Admin Area */}
-      <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full overflow-x-hidden">{children}</main>
+      <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full overflow-x-hidden">
+        <Toaster
+          position="top-right"
+          gutter={10}
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#1c1917',
+              color: '#f5f5f4',
+              border: '1px solid #292524',
+              borderRadius: '16px',
+              padding: '12px 18px',
+              fontSize: '13px',
+              fontWeight: '600',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#1c1917',
+              },
+              style: {
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: '#141c18',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#f43f5e',
+                secondary: '#1c1917',
+              },
+              style: {
+                border: '1px solid rgba(244, 63, 94, 0.4)',
+                background: '#201214',
+              },
+            },
+          }}
+        />
+        {children}
+      </main>
     </div>
   );
 }

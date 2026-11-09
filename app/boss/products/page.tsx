@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   Plus,
   Edit2,
@@ -68,10 +69,11 @@ export default function AdminProductsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create category');
+      toast.success(`Category "${newCatName.trim()}" created successfully!`);
       setNewCatName('');
       fetchProducts();
     } catch (err: any) {
-      alert(err.message || 'Error creating category');
+      toast.error(err.message || 'Error creating category');
     } finally {
       setAddingCat(false);
     }
@@ -82,9 +84,10 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch(`/api/categories/${catId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete category');
+      toast.success(`Category "${catName}" deleted successfully!`);
       fetchProducts();
     } catch (err: any) {
-      alert(err.message || 'Error deleting category');
+      toast.error(err.message || 'Error deleting category');
     }
   };
 
@@ -156,8 +159,9 @@ export default function AdminProductsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Image upload failed');
       setFormData((prev) => ({ ...prev, imageUrl: data.url }));
+      toast.success('Product image uploaded successfully!');
     } catch (err: any) {
-      alert(err.message || 'Image upload failed');
+      toast.error(err.message || 'Image upload failed');
     } finally {
       setUploadingImage(false);
     }
@@ -222,11 +226,14 @@ export default function AdminProductsPage() {
       setIsModalOpen(false);
       if (editingProduct) {
         setProducts((prev) => prev.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
+        toast.success(`Product "${payload.name}" updated successfully!`);
       } else {
         setProducts((prev) => [savedProduct, ...prev]);
+        toast.success(`Product "${payload.name}" added successfully!`);
       }
     } catch (err: any) {
       setError(err.message || 'Error saving product');
+      toast.error(err.message || 'Error saving product');
     }
   };
 
@@ -239,10 +246,11 @@ export default function AdminProductsPage() {
       if (!res.ok) {
         throw new Error('Failed to delete product');
       }
+      toast.success(`Product "${deletingProduct.name}" removed successfully!`);
       setDeletingProduct(null);
       fetchProducts();
     } catch (err: any) {
-      alert(err.message || 'Could not delete product');
+      toast.error(err.message || 'Could not delete product');
     }
   };
 

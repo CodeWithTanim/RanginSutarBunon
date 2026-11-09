@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Truck, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function AdminDeliverySettingsPage() {
@@ -43,9 +44,10 @@ export default function AdminDeliverySettingsPage() {
       }
 
       setSuccessMsg('Default delivery charge updated successfully!');
+      toast.success('Default delivery charge updated successfully!');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Save error');
+      toast.error(err.message || 'Save error');
     } finally {
       setSaving(false);
     }
