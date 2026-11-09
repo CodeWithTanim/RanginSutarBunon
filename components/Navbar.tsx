@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ShoppingBag, Menu, X, Phone, Mail, User } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ShoppingBag, Menu, X, Phone, Mail, User, LogOut } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { SiteSettings, DEFAULT_SETTINGS } from '@/lib/initialData';
 
@@ -11,6 +11,7 @@ let cachedNavbarSettings: SiteSettings | null = null;
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { totalItems, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [settings, setSettings] = useState<SiteSettings>(() => cachedNavbarSettings || { ...DEFAULT_SETTINGS });
@@ -42,14 +43,34 @@ export default function Navbar() {
         }
       })
       .catch(() => {});
+  }, []);
 
+  // Sync customer auth state whenever route or mount changes
+  useEffect(() => {
     fetch('/api/customer/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.authenticated) setCustomerLoggedIn(true);
+        if (data && data.authenticated) {
+          setCustomerLoggedIn(true);
+        } else {
+          setCustomerLoggedIn(false);
+        }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        setCustomerLoggedIn(false);
+      });
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/customer/auth/logout', { method: 'POST' });
+      setCustomerLoggedIn(false);
+      router.push('/');
+      router.refresh();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   // Hide Main Header in Admin Panel (/boss)
   if (pathname.startsWith('/boss')) {
@@ -144,15 +165,36 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Right Side Login & Cart */}
-          <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-            <Link
-              href={customerLoggedIn ? '/account' : '/account/login'}
-              className="flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-[#003d29] transition-colors"
-            >
-              <User className="w-5 h-5 text-gray-700" />
-              <span className="hidden sm:inline">{customerLoggedIn ? 'Account' : 'Login'}</span>
-            </Link>
+          {/* Right Side Login, Profile, Sign Out & Cart */}
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+            {customerLoggedIn ? (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Link
+                  href="/account"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#003d29] hover:bg-emerald-100 border border-emerald-200/80 text-xs font-bold transition-all shadow-sm group"
+                >
+                  <User className="w-3.5 h-3.5 text-[#003d29] group-hover:scale-110 transition-transform" />
+                  <span>Profile</span>
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  title="Sign Out of Account"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/account/login"
+                className="flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-[#003d29] transition-colors"
+              >
+                <User className="w-4 h-4 text-gray-700" />
+                <span className="hidden sm:inline">Login</span>
+              </Link>
+            )}
 
             <button
               onClick={() => setIsCartOpen(true)}
@@ -196,13 +238,46 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
-          <Link
-            href={customerLoggedIn ? '/account' : '/account/login'}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="block px-4 py-2.5 rounded-lg text-base font-bold text-[#003d29] hover:bg-gray-100"
-          >
-            {customerLoggedIn ? 'My Account' : 'Login / Register'}
-          </Link>
+
+          <div className="pt-2 border-t border-gray-100 space-y-2">
+            {customerLoggedIn ? (
+              <>
+                <Link
+                  href="/account"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-emerald-50 text-[#003d29] font-bold text-base border border-emerald-200/60"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <User className="w-5 h-5 text-[#003d29]" />
+                    Profile &amp; Orders
+                  </span>
+                  <span className="text-xs bg-[#003d29] text-white px-2 py-0.5 rounded-md font-mono">
+                    My Account
+                  </span>
+                </Link>
+
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-base font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
+                >
+                  <LogOut className="w-5 h-5 text-rose-600" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/account/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-base font-bold text-[#003d29] hover:bg-gray-100"
+              >
+                <User className="w-5 h-5 text-[#003d29]" />
+                Login / Register
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </header>
