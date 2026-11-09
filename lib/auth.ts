@@ -102,6 +102,16 @@ export async function getAdminSession() {
   return await verifyAdminToken(token);
 }
 
+export async function getBetterAuthSession(headersList?: Headers) {
+  try {
+    const { headers: nextHeaders } = await import('next/headers');
+    const h = headersList || (await nextHeaders());
+    return await auth.api.getSession({ headers: h });
+  } catch (err) {
+    return null;
+  }
+}
+
 export async function getAdminUserFromDb(username: string) {
   try {
     const db = await getDb();
