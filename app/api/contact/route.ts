@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { createContactMessage, getContactMessages } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
@@ -13,14 +13,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const newMessage = await prisma.contactMessage.create({
-      data: {
-        name,
-        email,
-        phone,
-        subject: subject || null,
-        message,
-      },
+    const newMessage = await createContactMessage({
+      name,
+      email,
+      phone,
+      subject: subject || null,
+      message,
     });
 
     return NextResponse.json({ success: true, message: newMessage }, { status: 201 });
@@ -32,9 +30,7 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
-    const messages = await prisma.contactMessage.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    const messages = await getContactMessages();
     return NextResponse.json(messages);
   } catch (error: any) {
     console.error('Error fetching contact messages:', error);

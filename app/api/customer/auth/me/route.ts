@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCustomerSession } from '@/lib/customerAuth';
-import { prisma } from '@/lib/db';
+import { getDb } from '@/lib/mongodb';
 
 export async function GET() {
   const session = await getCustomerSession();
@@ -9,56 +9,43 @@ export async function GET() {
   }
 
   try {
-    let customer: any = null;
-    let orders: any[] = [];
+    const db = await getDb();
+    const [customer, rawOrders] = await Promise.all([
+      db.collection('customers').findOne({ mobile: session.mobile }),
+      db.collection('orders').find({ mobile: session.mobile }).sort({ createdAt: -1 }).toArray(),
+    ]);
 
-    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref')) {
-      customer = await prisma.customer.findUnique({ where: { mobile: session.mobile } });
-      const rawOrders = await prisma.order.findMany({
-        where: { mobile: session.mobile },
-        include: { items: true },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      orders = rawOrders.map((o: any) => ({
-        id: o.id,
-        customerName: o.customerName,
-        mobile: o.mobile,
-        address: o.address,
-        city: o.city,
-        state: o.state,
-        pincode: o.pincode,
-        note: o.note,
-        subtotal: o.subtotal,
-        deliveryCharge: o.deliveryCharge,
-        totalAmount: o.totalAmount,
-        status: o.status,
-        paymentMethod: o.paymentMethod,
-        createdAt: o.createdAt.toISOString(),
-        items: o.items.map((i: any) => ({
-          id: i.id,
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          price: i.price,
-          total: i.total,
-        })),
-      }));
-    }
+    const orders = rawOrders.map((o: any) => ({
+      id: o.id,
+      customerName: o.customerName,
+      mobile: o.mobile,
+      address: o.address,
+      city: o.city,
+      state: o.state,
+      pincode: o.pincode,
+      note: o.note || null,
+      subtotal: Number(o.subtotal),
+      deliveryCharge: Number(o.deliveryCharge),
+      totalAmount: Number(o.totalAmount),
+      status: o.status,
+      paymentMethod: o.paymentMethod || 'Cash on Delivery',
+      createdAt: typeof o.createdAt === 'string' ? o.createdAt : (o.createdAt?.toISOString?.() || new Date().toISOString()),
+      items: Array.isArray(o.items) ? o.items : [],
+    }));
 
     return NextResponse.json({
       authenticated: true,
       customer: customer
         ? {
-            id: customer.id,
+            id: customer.id || String(customer._id),
             name: customer.name,
             mobile: customer.mobile,
-            address: customer.address,
-            city: customer.city,
-            state: customer.state,
-            pincode: customer.pincode,
-            extraMobiles: customer.extraMobiles ? JSON.parse(customer.extraMobiles) : [],
-            extraAddresses: customer.extraAddresses ? JSON.parse(customer.extraAddresses) : [],
+            address: customer.address || '',
+            city: customer.city || '',
+            state: customer.state || '',
+            pincode: customer.pincode || '',
+            extraMobiles: Array.isArray(customer.extraMobiles) ? customer.extraMobiles : [],
+            extraAddresses: Array.isArray(customer.extraAddresses) ? customer.extraAddresses : [],
           }
         : {
             name: session.name,

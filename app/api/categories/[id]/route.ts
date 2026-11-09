@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { deleteCategory } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
 
@@ -17,6 +18,10 @@ export async function DELETE(
     if (!success) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
+    try {
+      revalidatePath('/');
+      revalidatePath('/shop');
+    } catch {}
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to delete category' }, { status: 500 });

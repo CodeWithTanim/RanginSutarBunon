@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminToken, setAdminSessionCookie } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { createAdminToken, setAdminSessionCookie, getAdminUserFromDb } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
@@ -13,22 +12,20 @@ export async function POST(request: Request) {
 
     let isValid = false;
 
-    // Check DB Admin User if available
+    // 1. Check MongoDB Users collection
     try {
-      if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref')) {
-        const user = await prisma.user.findUnique({ where: { username } });
-        if (user) {
-          isValid = await bcrypt.compare(password, user.passwordHash);
-        }
+      const user = await getAdminUserFromDb(username);
+      if (user && user.passwordHash) {
+        isValid = await bcrypt.compare(password, user.passwordHash);
       }
-    } catch {
-      // Fallback
+    } catch (err) {
+      console.warn('MongoDB admin check warning:', err);
     }
 
-    // Default Fallback Admin Check if DB check did not pass
+    // 2. Default Fallback Admin Check from .env
     if (!isValid) {
       const defaultUser = process.env.ADMIN_USERNAME || 'admin';
-      const defaultPass = process.env.ADMIN_PASSWORD || 'admin123';
+      const defaultPass = process.env.ADMIN_PASSWORD;
       if (username === defaultUser && password === defaultPass) {
         isValid = true;
       }

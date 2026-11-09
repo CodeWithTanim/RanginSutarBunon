@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { deleteContactMessage, updateContactMessageStatus } from '@/lib/db';
 
 export async function DELETE(
   req: Request,
@@ -7,9 +7,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await prisma.contactMessage.delete({
-      where: { id },
-    });
+    await deleteContactMessage(id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting contact message:', error);
@@ -24,10 +22,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const updated = await prisma.contactMessage.update({
-      where: { id },
-      data: { isRead: body.isRead },
-    });
+    const updated = await updateContactMessageStatus(id, body.isRead);
     return NextResponse.json(updated);
   } catch (error: any) {
     console.error('Error updating message status:', error);

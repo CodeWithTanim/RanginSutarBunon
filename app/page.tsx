@@ -1,11 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, ShieldCheck, Truck, Award, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Truck, Award } from 'lucide-react';
 import { getProducts, getCategories, getSettings } from '@/lib/db';
 import ProductCard from '@/components/ProductCard';
+import { Button } from '@/components/ui/button';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// Enable Incremental Static Regeneration (ISR) for super fast edge loading (<50ms)
+export const revalidate = 60;
 
 export default async function HomePage() {
   const [allProducts, categories, settings] = await Promise.all([
@@ -13,29 +14,35 @@ export default async function HomePage() {
     getCategories(),
     getSettings(),
   ]);
+
   const featuredProducts = allProducts.filter((p) => p.isFeatured);
+  const displayProducts = allProducts.slice(0, 8);
 
   return (
     <div className="space-y-12 pb-16">
-      {/* Requirement 4: Dynamic Hero Section (Editable from Admin Panel) */}
+      {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <div className="bg-[#fbf0e4] rounded-3xl p-8 sm:p-12 lg:p-16 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 border border-amber-100 shadow-sm">
           {/* Hero Left Content */}
           <div className="space-y-6 max-w-xl text-center lg:text-left z-10">
+            <span className="inline-block px-3.5 py-1 bg-amber-200/60 text-[#003d29] text-xs font-bold rounded-full uppercase tracking-wider">
+              {settings.heroTagline || 'Artisan Heritage Collection'}
+            </span>
+
             <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.15]">
               {settings.heroHeadline || 'Grab Upto 50% Off On Selected Handcrafted Items'}
             </h1>
 
             <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
-              {settings.heroSubheadline || 'Authentic Jamdani textiles, unglazed terracotta pottery, organic Darjeeling teas, and antique brassware crafted by master weavers.'}
+              {settings.heroSubheadline ||
+                'Authentic Jamdani textiles, unglazed terracotta pottery, organic Darjeeling teas, and antique brassware crafted by master weavers.'}
             </p>
 
             <div className="pt-2 flex justify-center lg:justify-start">
-              <Link
-                href="/shop"
-                className="w-full sm:w-auto px-8 py-4 bg-[#003d29] hover:bg-[#00281b] text-[#ffffff] font-bold rounded-full shadow-lg text-base transition-all hover:scale-105"
-              >
-                {settings.heroCtaText || 'Buy Now'}
+              <Link href="/shop">
+                <Button size="lg" className="px-8 py-4 shadow-lg text-base hover:scale-105 transition-all">
+                  {settings.heroCtaText || 'Buy Now'}
+                </Button>
               </Link>
             </div>
           </div>
@@ -46,30 +53,46 @@ export default async function HomePage() {
             <img
               src={settings.heroImageUrl || '/uploads/Items/Hero-Section.png'}
               alt="Artisanal Heritage Showcase"
+              // @ts-ignore
+              fetchpriority="high"
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-cover rounded-3xl shadow-xl border-4 border-white"
             />
           </div>
         </div>
       </section>
 
-
-
       {/* Main Section Heading & Product Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-2xl sm:text-3xl text-gray-900">
-            Handcrafted Items For You!
-          </h2>
-          <Link href="/shop" className="text-xs sm:text-sm font-bold text-[#003d29] hover:underline flex items-center gap-1">
+          <div>
+            <h2 className="font-bold text-2xl sm:text-3xl text-gray-900">
+              Handcrafted Items For You!
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              Carefully curated pieces sourced directly from master village artisans.
+            </p>
+          </div>
+          <Link
+            href="/shop"
+            className="text-xs sm:text-sm font-bold text-[#003d29] hover:underline flex items-center gap-1"
+          >
             See All <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {allProducts.slice(0, 8).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {displayProducts.length === 0 ? (
+          <div className="py-16 text-center bg-gray-50 rounded-3xl border border-gray-200 p-8">
+            <p className="text-gray-600 text-sm">No products available at the moment. Please check back soon.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {displayProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Why Choose Us Showcase */}
@@ -83,7 +106,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <div className="p-8 bg-white border border-gray-200 rounded-3xl space-y-3 shadow-sm">
+            <div className="p-8 bg-white border border-gray-200 rounded-3xl space-y-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#003d29] flex items-center justify-center">
                 <Award className="w-6 h-6" />
               </div>
@@ -93,7 +116,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="p-8 bg-white border border-gray-200 rounded-3xl space-y-3 shadow-sm">
+            <div className="p-8 bg-white border border-gray-200 rounded-3xl space-y-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#003d29] flex items-center justify-center">
                 <Truck className="w-6 h-6" />
               </div>
@@ -103,7 +126,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="p-8 bg-white border border-gray-200 rounded-3xl space-y-3 shadow-sm">
+            <div className="p-8 bg-white border border-gray-200 rounded-3xl space-y-3 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#003d29] flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>
@@ -117,22 +140,32 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Products Showcase */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-2xl sm:text-3xl text-gray-900">
-            Featured Collection
-          </h2>
-          <Link href="/shop" className="text-xs sm:text-sm font-bold text-[#003d29] hover:underline flex items-center gap-1">
-            Browse All <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+      {featuredProducts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-2xl sm:text-3xl text-gray-900">
+                Featured Collection
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Handcrafted masterpieces selected for exceptional craftsmanship.
+              </p>
+            </div>
+            <Link
+              href="/shop"
+              className="text-xs sm:text-sm font-bold text-[#003d29] hover:underline flex items-center gap-1"
+            >
+              Browse All <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.slice(0, 4).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredProducts.slice(0, 4).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

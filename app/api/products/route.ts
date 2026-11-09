@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getProducts, createProduct } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
 
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     const products = await getProducts({ categoryId, search, featuredOnly: featured });
     return NextResponse.json(products, {
       headers: {
-        'Cache-Control': 'public, max-age=5, stale-while-revalidate=59',
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
       },
     });
   } catch (error: any) {
@@ -33,6 +34,10 @@ export async function POST(request: Request) {
     }
 
     const created = await createProduct(body);
+    try {
+      revalidatePath('/');
+      revalidatePath('/shop');
+    } catch {}
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create product' }, { status: 500 });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getDb } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { createCustomerToken, setCustomerSessionCookie } from '@/lib/customerAuth';
 
@@ -16,22 +16,22 @@ export async function POST(request: Request) {
     let isValid = false;
 
     try {
-      if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref')) {
-        customer = await prisma.customer.findUnique({ where: { mobile: cleanMobile } });
-        if (customer && customer.passwordHash) {
-          isValid = await bcrypt.compare(password, customer.passwordHash);
-        }
+      const db = await getDb();
+      customer = await db.collection('customers').findOne({ mobile: cleanMobile });
+      if (customer && customer.passwordHash) {
+        isValid = await bcrypt.compare(password, customer.passwordHash);
       }
-    } catch {
-      // Fallback
+    } catch (err) {
+      console.warn('Customer login query error:', err);
     }
 
     if (!customer || !isValid) {
       return NextResponse.json({ error: 'Invalid mobile number or password' }, { status: 401 });
     }
 
+    const customerId = customer.id || String(customer._id);
     const token = await createCustomerToken({
-      id: customer.id,
+      id: customerId,
       mobile: customer.mobile,
       name: customer.name,
     });
@@ -40,13 +40,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       customer: {
-        id: customer.id,
+        id: customerId,
         name: customer.name,
         mobile: customer.mobile,
-        address: customer.address,
-        city: customer.city,
-        state: customer.state,
-        pincode: customer.pincode,
+        address: customer.address || '',
+        city: customer.city || '',
+        state: customer.state || '',
+        pincode: customer.pincode || '',
       },
     });
   } catch (error: any) {

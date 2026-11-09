@@ -3,25 +3,43 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, Search, Menu, X, Phone, Mail, User, Sparkles } from 'lucide-react';
+import { ShoppingBag, Menu, X, Phone, Mail, User } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { SiteSettings, DEFAULT_SETTINGS } from '@/lib/initialData';
+
+let cachedNavbarSettings: SiteSettings | null = null;
 
 export default function Navbar() {
   const pathname = usePathname();
   const { totalItems, setIsCartOpen } = useCart();
-  const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [settings, setSettings] = useState<SiteSettings>({ ...DEFAULT_SETTINGS });
+  const [settings, setSettings] = useState<SiteSettings>(() => cachedNavbarSettings || { ...DEFAULT_SETTINGS });
   const [customerLoggedIn, setCustomerLoggedIn] = useState<boolean>(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Fast initial check from session storage if available
+    try {
+      const stored = sessionStorage.getItem('rsb_settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSettings(parsed);
+        cachedNavbarSettings = parsed;
+      }
+    } catch {}
 
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => {
-        if (data) setSettings((prev) => ({ ...prev, ...data }));
+        if (data && typeof data === 'object') {
+          setSettings((prev) => {
+            const next = { ...prev, ...data };
+            cachedNavbarSettings = next;
+            try {
+              sessionStorage.setItem('rsb_settings', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+        }
       })
       .catch(() => {});
 
@@ -38,7 +56,6 @@ export default function Navbar() {
     return null;
   }
 
-  // Requirement 5: Only Home, Shop, About, Contact
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Shop', href: '/shop' },
@@ -55,10 +72,10 @@ export default function Navbar() {
         {/* Left: Phone */}
         <div className="flex items-center gap-2 justify-center md:justify-start">
           <Phone className="w-3.5 h-3.5 text-emerald-300" />
-          <span>{settings.topBannerPhone || '+880 1712-345678'}</span>
+          <span>{settings.topBannerPhone || '+880 1700-000000'}</span>
         </div>
 
-        {/* Center: Discount Text (Show/Hide controlled from Admin) */}
+        {/* Center: Top Announcement Text */}
         {settings.showTopBannerText !== false ? (
           <div className="hidden md:flex items-center justify-center gap-2 text-emerald-100 text-center">
             <span>{settings.topBannerText || 'Welcome to Rangin Sutar Bunon'}</span>
@@ -73,7 +90,7 @@ export default function Navbar() {
           </div>
         ) : <div className="hidden md:block" />}
 
-        {/* Right: Support Email (Show only if provided) */}
+        {/* Right: Support Email */}
         <div className="hidden md:flex items-center justify-end gap-2 text-emerald-100">
           {settings.topBannerEmail && (
             <>
@@ -89,22 +106,19 @@ export default function Navbar() {
       {/* Main Header Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 gap-4">
-          {/* Requirement 6 & 7: Left Side Logo + Website Name (Supporting Only Logo / Only Name / Both) */}
+          {/* Left Side Logo + Website Name */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
-            {/* Logo Image */}
             {settings.logoUrl && (brandMode === 'both' || brandMode === 'logo_only') && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={settings.logoUrl} alt="Store Logo" className="h-10 w-auto object-contain rounded" />
             )}
 
-            {/* Fallback Icon if no logo image exists and mode is not text_only */}
             {!settings.logoUrl && brandMode !== 'text_only' && (
               <div className="w-10 h-10 rounded-xl bg-[#003d29] flex items-center justify-center text-white font-serif font-bold text-lg shadow-sm">
                 RS
               </div>
             )}
 
-            {/* Website Name Text */}
             {(brandMode === 'both' || brandMode === 'text_only' || !settings.logoUrl) && (
               <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
                 {settings.siteTitle ? settings.siteTitle.split('|')[0].trim() : 'Rangin Sutar Bunon'}
@@ -112,7 +126,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* Navigation Links (Only Home, Shop, About, Contact) */}
+          {/* Navigation Links */}
           <nav className="hidden lg:flex items-center space-x-8">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -130,9 +144,8 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Requirement 6: Right Side Login & Cart Only */}
+          {/* Right Side Login & Cart */}
           <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-            {/* Account / Login */}
             <Link
               href={customerLoggedIn ? '/account' : '/account/login'}
               className="flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-[#003d29] transition-colors"
@@ -141,10 +154,9 @@ export default function Navbar() {
               <span className="hidden sm:inline">{customerLoggedIn ? 'Account' : 'Login'}</span>
             </Link>
 
-            {/* Cart */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-[#003d29] transition-colors relative"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-[#003d29] transition-colors relative cursor-pointer"
             >
               <div className="relative">
                 <ShoppingBag className="w-6 h-6 text-gray-800" />
@@ -157,7 +169,6 @@ export default function Navbar() {
               <span className="hidden sm:inline font-bold">Cart</span>
             </button>
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden p-2 text-gray-700 hover:text-[#003d29]"

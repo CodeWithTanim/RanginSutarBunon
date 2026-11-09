@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { getDb, ensureIndexes } from './mongodb';
 import {
   INITIAL_PRODUCTS,
   INITIAL_CATEGORIES,
-  INITIAL_ORDERS,
-  INITIAL_CUSTOMERS,
   DEFAULT_SETTINGS,
   ProductItem,
   CategoryItem,
@@ -13,37 +11,13 @@ import {
   SiteSettings,
 } from './initialData';
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-let memoryProducts: ProductItem[] = [...INITIAL_PRODUCTS];
-let memoryCategories: CategoryItem[] = [...INITIAL_CATEGORIES];
-let memoryOrders: OrderRecord[] = [...INITIAL_ORDERS];
-let memoryCustomers: CustomerRecord[] = [...INITIAL_CUSTOMERS];
-let memorySettings: SiteSettings = { ...DEFAULT_SETTINGS };
-
-let dbAvailableCache: boolean | null = null;
-async function isDatabaseAvailable(): Promise<boolean> {
-  if (dbAvailableCache === null) {
-    dbAvailableCache = Boolean(process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-tenant-ref'));
-  }
-  return dbAvailableCache;
-}
-
 let cachedProducts: ProductItem[] | null = null;
 let cachedProductsTime = 0;
 let cachedCategories: CategoryItem[] | null = null;
 let cachedCategoriesTime = 0;
 let cachedSettings: SiteSettings | null = null;
 let cachedSettingsTime = 0;
-const CACHE_TTL_MS = 30000; // 30 seconds TTL
+const CACHE_TTL_MS = 60000; // 60 seconds in-memory TTL
 
 export function clearDbCache() {
   cachedProducts = null;
@@ -52,6 +26,47 @@ export function clearDbCache() {
   cachedCategoriesTime = 0;
   cachedSettings = null;
   cachedSettingsTime = 0;
+}
+
+// Auto-seed initial data to MongoDB if empty
+let initialized = false;
+async function ensureDbInitialized() {
+  if (initialized) return;
+  try {
+    await ensureIndexes();
+    const db = await getDb();
+    
+    // Check categories
+    const catCount = await db.collection('categories').countDocuments();
+    if (catCount === 0 && INITIAL_CATEGORIES.length > 0) {
+      await db.collection('categories').insertMany(
+        INITIAL_CATEGORIES.map((c) => ({ ...c, _id: undefined }))
+      );
+    }
+
+    // Check products
+    const prodCount = await db.collection('products').countDocuments();
+    if (prodCount === 0 && INITIAL_PRODUCTS.length > 0) {
+      await db.collection('products').insertMany(
+        INITIAL_PRODUCTS.map((p) => ({ ...p, _id: undefined }))
+      );
+    }
+
+    // Check settings
+    const settingsCount = await db.collection('settings').countDocuments();
+    if (settingsCount === 0) {
+      const settingsDocs = Object.entries(DEFAULT_SETTINGS).map(([key, value]) => ({
+        key,
+        value: String(value),
+        updatedAt: new Date().toISOString(),
+      }));
+      await db.collection('settings').insertMany(settingsDocs);
+    }
+
+    initialized = true;
+  } catch (err) {
+    console.warn('⚠️ ensureDbInitialized warning:', err);
+  }
 }
 
 // ---------------- PRODUCTS ----------------
@@ -68,62 +83,38 @@ export async function getProducts(options?: {
     allProds = cachedProducts;
   } else {
     try {
-      if (await isDatabaseAvailable()) {
-        const [dbProducts, allCategories] = await Promise.all([
-          prisma.product.findMany({
-            where: { isActive: true },
-            include: { category: true },
-            orderBy: { createdAt: 'desc' },
-          }),
-          getCategories(),
-        ]);
+      await ensureDbInitialized();
+      const db = await getDb();
+      const docs = await db
+        .collection('products')
+        .find({ isActive: true })
+        .sort({ createdAt: -1 })
+        .toArray();
 
-        const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+      allProds = docs.map((p: any) => ({
+        id: p.id || String(p._id),
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        price: Number(p.price),
+        discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+        stock: Number(p.stock || 0),
+        categoryId: p.categoryId,
+        categoryName: p.categoryName || 'General',
+        categoryIds: p.categoryIds || (p.categoryId ? [p.categoryId] : []),
+        categoryNames: p.categoryNames || [p.categoryName || 'General'],
+        imageUrl: p.imageUrl,
+        images: Array.isArray(p.images) ? p.images : [],
+        isFeatured: Boolean(p.isFeatured),
+        isActive: Boolean(p.isActive),
+        createdAt: typeof p.createdAt === 'string' ? p.createdAt : (p.createdAt?.toISOString?.() || new Date().toISOString()),
+      }));
 
-        allProds = dbProducts.map((p: any) => {
-          let catIds: string[] = [];
-          try {
-            if (p.images && p.images.startsWith('CAT:')) {
-              catIds = JSON.parse(p.images.substring(4));
-            } else {
-              catIds = [p.categoryId];
-            }
-          } catch {
-            catIds = [p.categoryId];
-          }
-          if (!catIds.includes(p.categoryId)) {
-            catIds.push(p.categoryId);
-          }
-          const catNames = catIds.map((cid) => categoryMap.get(cid) || (cid === p.categoryId ? p.category?.name : '') || 'General').filter(Boolean);
-
-          return {
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            description: p.description,
-            price: p.price,
-            discountPrice: p.discountPrice,
-            stock: p.stock,
-            categoryId: p.categoryId,
-            categoryName: catNames.join(', ') || p.category?.name || 'General',
-            categoryIds: catIds,
-            categoryNames: catNames,
-            imageUrl: p.imageUrl,
-            images: [],
-            isFeatured: p.isFeatured,
-            isActive: p.isActive,
-            createdAt: p.createdAt.toISOString(),
-          };
-        });
-
-        cachedProducts = allProds;
-        cachedProductsTime = now;
-      } else {
-        allProds = memoryProducts.filter((p) => p.isActive);
-      }
+      cachedProducts = allProds;
+      cachedProductsTime = now;
     } catch (err) {
-      console.warn('Prisma getProducts fallback to memory:', err);
-      allProds = memoryProducts.filter((p) => p.isActive);
+      console.warn('MongoDB getProducts fallback:', err);
+      allProds = [...INITIAL_PRODUCTS];
     }
   }
 
@@ -132,7 +123,9 @@ export async function getProducts(options?: {
     list = list.filter((p) => p.isFeatured);
   }
   if (options?.categoryId && options.categoryId !== 'all') {
-    list = list.filter((p) => p.categoryIds?.includes(options.categoryId!) || p.categoryId === options.categoryId);
+    list = list.filter(
+      (p) => p.categoryIds?.includes(options.categoryId!) || p.categoryId === options.categoryId
+    );
   }
   if (options?.search) {
     const q = options.search.toLowerCase();
@@ -144,247 +137,172 @@ export async function getProducts(options?: {
 }
 
 export async function getAllProductsAdmin(): Promise<ProductItem[]> {
-  return getProducts();
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    const docs = await db
+      .collection('products')
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return docs.map((p: any) => ({
+      id: p.id || String(p._id),
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: Number(p.price),
+      discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+      stock: Number(p.stock || 0),
+      categoryId: p.categoryId,
+      categoryName: p.categoryName || 'General',
+      categoryIds: p.categoryIds || (p.categoryId ? [p.categoryId] : []),
+      categoryNames: p.categoryNames || [p.categoryName || 'General'],
+      imageUrl: p.imageUrl,
+      images: Array.isArray(p.images) ? p.images : [],
+      isFeatured: Boolean(p.isFeatured),
+      isActive: Boolean(p.isActive),
+      createdAt: typeof p.createdAt === 'string' ? p.createdAt : (p.createdAt?.toISOString?.() || new Date().toISOString()),
+    }));
+  } catch (err) {
+    console.warn('MongoDB getAllProductsAdmin fallback:', err);
+    return getProducts();
+  }
 }
 
 export async function getProductById(id: string): Promise<ProductItem | null> {
   try {
-    if (await isDatabaseAvailable()) {
-      const p: any = await prisma.product.findUnique({
-        where: { id },
-        include: { category: true },
-      });
-      if (!p) return null;
-      let catIds: string[] = [];
-      try {
-        if (p.images && p.images.startsWith('CAT:')) {
-          catIds = JSON.parse(p.images.substring(4));
-        } else {
-          catIds = [p.categoryId];
-        }
-      } catch {
-        catIds = [p.categoryId];
-      }
-      return {
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        price: p.price,
-        discountPrice: p.discountPrice,
-        stock: p.stock,
-        categoryId: p.categoryId,
-        categoryName: p.category?.name || 'General',
-        categoryIds: catIds,
-        categoryNames: [p.category?.name || 'General'],
-        imageUrl: p.imageUrl,
-        images: [],
-        isFeatured: p.isFeatured,
-        isActive: p.isActive,
-        createdAt: p.createdAt.toISOString(),
-      };
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const p: any = await db.collection('products').findOne({ $or: [{ id }, { slug: id }] });
+    if (!p) return null;
+
+    return {
+      id: p.id || String(p._id),
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: Number(p.price),
+      discountPrice: p.discountPrice ? Number(p.discountPrice) : null,
+      stock: Number(p.stock || 0),
+      categoryId: p.categoryId,
+      categoryName: p.categoryName || 'General',
+      categoryIds: p.categoryIds || [p.categoryId],
+      categoryNames: p.categoryNames || [p.categoryName || 'General'],
+      imageUrl: p.imageUrl,
+      images: Array.isArray(p.images) ? p.images : [],
+      isFeatured: Boolean(p.isFeatured),
+      isActive: Boolean(p.isActive),
+      createdAt: typeof p.createdAt === 'string' ? p.createdAt : (p.createdAt?.toISOString?.() || new Date().toISOString()),
+    };
   } catch (err) {
-    console.warn('Prisma getProductById fallback:', err);
+    console.warn('MongoDB getProductById fallback:', err);
+    return null;
   }
-  return memoryProducts.find((p) => p.id === id) || null;
 }
 
-async function ensureValidCategoryId(catId?: string): Promise<string> {
-  if (!catId) {
-    const first = await prisma.category.findFirst().catch(() => null);
-    if (first) return first.id;
-    const created = await prisma.category.create({ data: { name: 'General', slug: `general-${Date.now()}` } }).catch(() => null);
-    return created ? created.id : 'general';
-  }
-  const existing = await prisma.category.findUnique({ where: { id: catId } }).catch(() => null);
-  if (existing) return existing.id;
-
-  const first = await prisma.category.findFirst().catch(() => null);
-  if (first) return first.id;
-
-  const created = await prisma.category.create({ data: { name: 'General', slug: `general-${Date.now()}` } }).catch(() => null);
-  return created ? created.id : catId;
-}
-
-export async function createProduct(data: Omit<ProductItem, 'id' | 'createdAt' | 'categoryName'>): Promise<ProductItem> {
-  cachedProducts = null;
+export async function createProduct(
+  data: Omit<ProductItem, 'id' | 'createdAt' | 'categoryName'>
+): Promise<ProductItem> {
+  clearDbCache();
   const catIds = data.categoryIds && data.categoryIds.length > 0 ? data.categoryIds : [data.categoryId];
-  const rawPrimaryCatId = catIds[0];
+  const rawPrimaryCatId = catIds[0] || 'general';
 
-  const baseSlugPart = encodeURIComponent(data.name.trim().toLowerCase()).replace(/%/g, '').substring(0, 30) || 'product';
+  const baseSlugPart =
+    encodeURIComponent(data.name.trim().toLowerCase()).replace(/%/g, '').substring(0, 30) || 'product';
   const uniqueSlug = `${baseSlugPart}-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
 
+  const categories = await getCategories();
+  const catMap = new Map(categories.map((c) => [c.id, c.name]));
+  const categoryNames = catIds.map((cid) => catMap.get(cid) || 'General');
+  const primaryCatName = categoryNames[0] || 'General';
+
+  const newId = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+
+  const productDoc: ProductItem = {
+    id: newId,
+    name: data.name.trim(),
+    slug: uniqueSlug,
+    description: data.description,
+    price: Number(data.price),
+    discountPrice: data.discountPrice ? Number(data.discountPrice) : null,
+    stock: Number(data.stock || 0),
+    categoryId: rawPrimaryCatId,
+    categoryName: primaryCatName,
+    categoryIds: catIds,
+    categoryNames,
+    imageUrl: data.imageUrl,
+    images: Array.isArray(data.images) ? data.images : [],
+    isFeatured: Boolean(data.isFeatured),
+    isActive: Boolean(data.isActive),
+    createdAt: now,
+  };
+
   try {
-    if (await isDatabaseAvailable()) {
-      const validCatId = await ensureValidCategoryId(rawPrimaryCatId);
-
-      const created: any = await prisma.product.create({
-        data: {
-          name: data.name,
-          slug: uniqueSlug,
-          description: data.description,
-          price: Number(data.price),
-          discountPrice: data.discountPrice ? Number(data.discountPrice) : null,
-          stock: Number(data.stock),
-          categoryId: validCatId,
-          imageUrl: data.imageUrl,
-          images: `CAT:${JSON.stringify(catIds)}`,
-          isFeatured: Boolean(data.isFeatured),
-          isActive: Boolean(data.isActive),
-        },
-        include: { category: true },
-      });
-
-      return {
-        id: created.id,
-        name: created.name,
-        slug: created.slug,
-        description: created.description,
-        price: created.price,
-        discountPrice: created.discountPrice,
-        stock: created.stock,
-        categoryId: validCatId,
-        categoryName: created.category?.name || 'General',
-        categoryIds: catIds,
-        categoryNames: [created.category?.name || 'General'],
-        imageUrl: created.imageUrl,
-        images: [],
-        isFeatured: created.isFeatured,
-        isActive: created.isActive,
-        createdAt: created.createdAt.toISOString(),
-      };
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    await db.collection('products').insertOne({ ...productDoc });
   } catch (err) {
-    console.error('Prisma createProduct error:', err);
+    console.error('MongoDB createProduct error:', err);
   }
 
-  const newProd: ProductItem = {
-    ...data,
-    id: `prod-${Date.now()}`,
-    categoryId: rawPrimaryCatId,
-    categoryName: 'General',
-    categoryIds: catIds,
-    categoryNames: ['General'],
-    createdAt: new Date().toISOString(),
-  };
-  memoryProducts.unshift(newProd);
-  return newProd;
+  return productDoc;
 }
 
 export async function updateProduct(id: string, data: Partial<ProductItem>): Promise<ProductItem | null> {
-  cachedProducts = null;
+  clearDbCache();
   try {
-    if (await isDatabaseAvailable()) {
-      const updateData: any = {};
-      if (data.name !== undefined) updateData.name = data.name;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.price !== undefined) updateData.price = Number(data.price);
-      if (data.discountPrice !== undefined) updateData.discountPrice = data.discountPrice ? Number(data.discountPrice) : null;
-      if (data.stock !== undefined) updateData.stock = Number(data.stock);
-      if (data.categoryIds !== undefined && data.categoryIds.length > 0) {
-        const validCatId = await ensureValidCategoryId(data.categoryIds[0]);
-        updateData.categoryId = validCatId;
-        updateData.images = `CAT:${JSON.stringify(data.categoryIds)}`;
-      } else if (data.categoryId !== undefined) {
-        const validCatId = await ensureValidCategoryId(data.categoryId);
-        updateData.categoryId = validCatId;
-        updateData.images = `CAT:${JSON.stringify([data.categoryId])}`;
-      }
-      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
-      if (data.isFeatured !== undefined) updateData.isFeatured = Boolean(data.isFeatured);
-      if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
+    await ensureDbInitialized();
+    const db = await getDb();
 
-      const existingInDb = await prisma.product.findUnique({ where: { id } }).catch(() => null);
-      if (existingInDb) {
-        const updated: any = await prisma.product.update({
-          where: { id },
-          data: updateData,
-          include: { category: true },
-        });
+    const updateFields: any = { updatedAt: new Date().toISOString() };
+    if (data.name !== undefined) updateFields.name = data.name.trim();
+    if (data.description !== undefined) updateFields.description = data.description;
+    if (data.price !== undefined) updateFields.price = Number(data.price);
+    if (data.discountPrice !== undefined)
+      updateFields.discountPrice = data.discountPrice ? Number(data.discountPrice) : null;
+    if (data.stock !== undefined) updateFields.stock = Number(data.stock);
+    if (data.imageUrl !== undefined) updateFields.imageUrl = data.imageUrl;
+    if (data.isFeatured !== undefined) updateFields.isFeatured = Boolean(data.isFeatured);
+    if (data.isActive !== undefined) updateFields.isActive = Boolean(data.isActive);
+    if (data.images !== undefined) updateFields.images = data.images;
 
-        let catIds: string[] = [];
-        try {
-          if (updated.images && updated.images.startsWith('CAT:')) {
-            catIds = JSON.parse(updated.images.substring(4));
-          } else {
-            catIds = [updated.categoryId];
-          }
-        } catch {
-          catIds = [updated.categoryId];
-        }
-
-        return {
-          id: updated.id,
-          name: updated.name,
-          slug: updated.slug,
-          description: updated.description,
-          price: updated.price,
-          discountPrice: updated.discountPrice,
-          stock: updated.stock,
-          categoryId: updated.categoryId,
-          categoryName: updated.category?.name || 'General',
-          categoryIds: catIds,
-          categoryNames: [updated.category?.name || 'General'],
-          imageUrl: updated.imageUrl,
-          images: [],
-          isFeatured: updated.isFeatured,
-          isActive: updated.isActive,
-          createdAt: updated.createdAt.toISOString(),
-        };
-      }
+    if (data.categoryIds !== undefined && data.categoryIds.length > 0) {
+      updateFields.categoryIds = data.categoryIds;
+      updateFields.categoryId = data.categoryIds[0];
+      const categories = await getCategories();
+      const catMap = new Map(categories.map((c) => [c.id, c.name]));
+      updateFields.categoryNames = data.categoryIds.map((cid) => catMap.get(cid) || 'General');
+      updateFields.categoryName = updateFields.categoryNames[0] || 'General';
+    } else if (data.categoryId !== undefined) {
+      updateFields.categoryId = data.categoryId;
+      updateFields.categoryIds = [data.categoryId];
+      const categories = await getCategories();
+      const matched = categories.find((c) => c.id === data.categoryId);
+      updateFields.categoryName = matched ? matched.name : 'General';
+      updateFields.categoryNames = [updateFields.categoryName];
     }
+
+    await db.collection('products').updateOne({ id }, { $set: updateFields });
+    return await getProductById(id);
   } catch (err) {
-    console.error('Prisma updateProduct error:', err);
+    console.error('MongoDB updateProduct error:', err);
+    return null;
   }
-
-  const idx = memoryProducts.findIndex((p) => p.id === id);
-  if (idx !== -1) {
-    memoryProducts[idx] = {
-      ...memoryProducts[idx],
-      ...data,
-    };
-    return memoryProducts[idx];
-  }
-
-  if (data.name && data.price) {
-    return createProduct({
-      name: data.name,
-      description: data.description || '',
-      price: data.price,
-      discountPrice: data.discountPrice,
-      stock: data.stock || 10,
-      categoryId: data.categoryId || 'general',
-      categoryIds: data.categoryIds || [],
-      imageUrl: data.imageUrl || '',
-      isFeatured: Boolean(data.isFeatured),
-      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
-      images: [],
-      slug: '',
-    });
-  }
-
-  return null;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  cachedProducts = null;
+  clearDbCache();
   try {
-    if (await isDatabaseAvailable()) {
-      await prisma.product.delete({ where: { id } });
-      return true;
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const res = await db.collection('products').deleteOne({ id });
+    return res.deletedCount > 0;
   } catch (err) {
-    console.warn('Prisma deleteProduct fallback:', err);
+    console.warn('MongoDB deleteProduct error:', err);
+    return false;
   }
-
-  cachedProducts = null;
-  const idx = memoryProducts.findIndex((p) => p.id === id);
-  if (idx !== -1) {
-    memoryProducts.splice(idx, 1);
-    return true;
-  }
-  return false;
 }
 
 // ---------------- CATEGORIES ----------------
@@ -396,96 +314,88 @@ export async function getCategories(): Promise<CategoryItem[]> {
   }
 
   try {
-    if (await isDatabaseAvailable()) {
-      const cats = await prisma.category.findMany({ orderBy: { name: 'asc' } });
-      const mapped = cats.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug }));
-      cachedCategories = mapped;
-      cachedCategoriesTime = now;
-      return mapped;
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const docs = await db.collection('categories').find({}).sort({ name: 1 }).toArray();
+
+    const mapped = docs.map((c: any) => ({
+      id: c.id || String(c._id),
+      name: c.name,
+      slug: c.slug,
+    }));
+
+    cachedCategories = mapped;
+    cachedCategoriesTime = now;
+    return mapped;
   } catch (err) {
-    console.warn('Prisma getCategories fallback:', err);
+    console.warn('MongoDB getCategories fallback:', err);
+    return [...INITIAL_CATEGORIES];
   }
-  return memoryCategories;
 }
 
 export async function createCategory(name: string): Promise<CategoryItem> {
-  cachedCategories = null;
-  cachedProducts = null;
-  const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
-  try {
-    if (await isDatabaseAvailable()) {
-      const created = await prisma.category.create({
-        data: { name: name.trim(), slug },
-      });
-      return { id: created.id, name: created.name, slug: created.slug };
-    }
-  } catch (err) {
-    console.warn('Prisma createCategory fallback:', err);
-  }
-
+  clearDbCache();
+  const slug =
+    name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
   const newCat: CategoryItem = {
-    id: `cat-${Date.now()}`,
+    id: `cat-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     name: name.trim(),
     slug,
   };
-  memoryCategories.push(newCat);
+
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    await db.collection('categories').insertOne({ ...newCat });
+  } catch (err) {
+    console.error('MongoDB createCategory error:', err);
+  }
+
   return newCat;
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  cachedCategories = null;
-  cachedProducts = null;
+  clearDbCache();
   try {
-    if (await isDatabaseAvailable()) {
-      await prisma.category.delete({ where: { id } });
-      return true;
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const res = await db.collection('categories').deleteOne({ id });
+    return res.deletedCount > 0;
   } catch (err) {
-    console.warn('Prisma deleteCategory fallback:', err);
+    console.warn('MongoDB deleteCategory error:', err);
+    return false;
   }
-  memoryCategories = memoryCategories.filter((c) => c.id !== id);
-  return true;
 }
 
 // ---------------- ORDERS & CUSTOMERS ----------------
 
 export async function getOrders(): Promise<OrderRecord[]> {
   try {
-    if (await isDatabaseAvailable()) {
-      const orders = await prisma.order.findMany({
-        include: { items: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      return orders.map((o: any) => ({
-        id: o.id,
-        customerName: o.customerName,
-        mobile: o.mobile,
-        address: o.address,
-        city: o.city,
-        state: o.state,
-        pincode: o.pincode,
-        note: o.note,
-        subtotal: o.subtotal,
-        deliveryCharge: o.deliveryCharge,
-        totalAmount: o.totalAmount,
-        status: o.status,
-        paymentMethod: o.paymentMethod,
-        createdAt: o.createdAt.toISOString(),
-        items: o.items.map((i: any) => ({
-          id: i.id,
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          price: i.price,
-          total: i.total,
-        })),
-      }));
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const docs = await db.collection('orders').find({}).sort({ createdAt: -1 }).toArray();
+
+    return docs.map((o: any) => ({
+      id: o.id,
+      customerName: o.customerName,
+      mobile: o.mobile,
+      address: o.address,
+      city: o.city,
+      state: o.state,
+      pincode: o.pincode,
+      note: o.note || null,
+      subtotal: Number(o.subtotal),
+      deliveryCharge: Number(o.deliveryCharge),
+      totalAmount: Number(o.totalAmount),
+      status: o.status,
+      paymentMethod: o.paymentMethod || 'Cash on Delivery',
+      createdAt: typeof o.createdAt === 'string' ? o.createdAt : (o.createdAt?.toISOString?.() || new Date().toISOString()),
+      items: Array.isArray(o.items) ? o.items : [],
+    }));
   } catch (err) {
-    console.warn('Prisma getOrders fallback:', err);
+    console.warn('MongoDB getOrders fallback:', err);
+    return [];
   }
-  return memoryOrders;
 }
 
 export async function getOrderByIdAndMobile(id: string, mobile: string): Promise<OrderRecord | null> {
@@ -493,49 +403,36 @@ export async function getOrderByIdAndMobile(id: string, mobile: string): Promise
   const cleanMobile = mobile.trim();
 
   try {
-    if (await isDatabaseAvailable()) {
-      const order: any = await prisma.order.findFirst({
-        where: {
-          id: cleanId,
-          mobile: cleanMobile,
-        },
-        include: { items: true },
-      });
-      if (!order) return null;
-      return {
-        id: order.id,
-        customerName: order.customerName,
-        mobile: order.mobile,
-        address: order.address,
-        city: order.city,
-        state: order.state,
-        pincode: order.pincode,
-        note: order.note,
-        subtotal: order.subtotal,
-        deliveryCharge: order.deliveryCharge,
-        totalAmount: order.totalAmount,
-        status: order.status,
-        paymentMethod: order.paymentMethod,
-        createdAt: order.createdAt.toISOString(),
-        items: order.items.map((i: any) => ({
-          id: i.id,
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          price: i.price,
-          total: i.total,
-        })),
-      };
-    }
-  } catch (err) {
-    console.warn('Prisma getOrderByIdAndMobile fallback:', err);
-  }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const o: any = await db.collection('orders').findOne({
+      id: { $regex: new RegExp(`^${cleanId}$`, 'i') },
+      mobile: cleanMobile,
+    });
 
-  return (
-    memoryOrders.find(
-      (o) => o.id.toUpperCase() === cleanId && o.mobile.trim() === cleanMobile
-    ) || null
-  );
+    if (!o) return null;
+
+    return {
+      id: o.id,
+      customerName: o.customerName,
+      mobile: o.mobile,
+      address: o.address,
+      city: o.city,
+      state: o.state,
+      pincode: o.pincode,
+      note: o.note || null,
+      subtotal: Number(o.subtotal),
+      deliveryCharge: Number(o.deliveryCharge),
+      totalAmount: Number(o.totalAmount),
+      status: o.status,
+      paymentMethod: o.paymentMethod || 'Cash on Delivery',
+      createdAt: typeof o.createdAt === 'string' ? o.createdAt : (o.createdAt?.toISOString?.() || new Date().toISOString()),
+      items: Array.isArray(o.items) ? o.items : [],
+    };
+  } catch (err) {
+    console.warn('MongoDB getOrderByIdAndMobile error:', err);
+    return null;
+  }
 }
 
 export async function createOrder(data: {
@@ -545,11 +442,11 @@ export async function createOrder(data: {
   city: string;
   state: string;
   pincode: string;
-  note?: string;
+  note?: string | null;
   items: { productId: string; quantity: number }[];
 }): Promise<OrderRecord> {
   const settings = await getSettings();
-  const deliveryFee = settings.deliveryCharge;
+  const deliveryFee = settings.deliveryCharge || 150;
 
   let subtotal = 0;
   const orderItemsData: OrderItemRecord[] = [];
@@ -563,7 +460,7 @@ export async function createOrder(data: {
     orderItemsData.push({
       id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       productId: item.productId,
-      productName: prod ? prod.name : 'Unknown Product',
+      productName: prod ? prod.name : 'Handcrafted Item',
       quantity: item.quantity,
       price: price,
       total: itemTotal,
@@ -571,94 +468,12 @@ export async function createOrder(data: {
   }
 
   const grandTotal = subtotal + deliveryFee;
-
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const randomNum = Math.floor(100 + Math.random() * 900);
   const orderId = `ORD-${dateStr}-${randomNum}`;
+  const now = new Date().toISOString();
 
-  try {
-    if (await isDatabaseAvailable()) {
-      const created: any = await prisma.order.create({
-        data: {
-          id: orderId,
-          customerName: data.customerName,
-          mobile: data.mobile,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          pincode: data.pincode,
-          note: data.note || '',
-          subtotal: subtotal,
-          deliveryCharge: deliveryFee,
-          totalAmount: grandTotal,
-          status: 'Order Placed',
-          paymentMethod: 'Cash on Delivery',
-          items: {
-            create: orderItemsData.map((i) => ({
-              productId: i.productId,
-              productName: i.productName,
-              quantity: i.quantity,
-              price: i.price,
-              total: i.total,
-            })),
-          },
-        },
-        include: { items: true },
-      });
-
-      await prisma.customer.upsert({
-        where: { mobile: data.mobile },
-        update: {
-          name: data.customerName,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          pincode: data.pincode,
-          totalOrders: { increment: 1 },
-          totalSpent: { increment: grandTotal },
-        },
-        create: {
-          name: data.customerName,
-          mobile: data.mobile,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          pincode: data.pincode,
-          totalOrders: 1,
-          totalSpent: grandTotal,
-        },
-      });
-
-      return {
-        id: created.id,
-        customerName: created.customerName,
-        mobile: created.mobile,
-        address: created.address,
-        city: created.city,
-        state: created.state,
-        pincode: created.pincode,
-        note: created.note,
-        subtotal: created.subtotal,
-        deliveryCharge: created.deliveryCharge,
-        totalAmount: created.totalAmount,
-        status: created.status,
-        paymentMethod: created.paymentMethod,
-        createdAt: created.createdAt.toISOString(),
-        items: created.items.map((i: any) => ({
-          id: i.id,
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          price: i.price,
-          total: i.total,
-        })),
-      };
-    }
-  } catch (err) {
-    console.warn('Prisma createOrder fallback:', err);
-  }
-
-  const newOrderRecord: OrderRecord = {
+  const newOrder: OrderRecord = {
     id: orderId,
     customerName: data.customerName,
     mobile: data.mobile,
@@ -672,104 +487,110 @@ export async function createOrder(data: {
     totalAmount: grandTotal,
     status: 'Order Placed',
     paymentMethod: 'Cash on Delivery',
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     items: orderItemsData,
   };
-  memoryOrders.unshift(newOrderRecord);
 
-  const existingCust = memoryCustomers.find((c) => c.mobile === data.mobile);
-  if (existingCust) {
-    existingCust.totalOrders += 1;
-    existingCust.totalSpent += grandTotal;
-    existingCust.name = data.customerName;
-    existingCust.address = data.address;
-  } else {
-    memoryCustomers.push({
-      id: `cust-${Date.now()}`,
-      name: data.customerName,
-      mobile: data.mobile,
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      pincode: data.pincode,
-      totalOrders: 1,
-      totalSpent: grandTotal,
-      createdAt: new Date().toISOString(),
-    });
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    await db.collection('orders').insertOne({ ...newOrder });
+
+    // Update or insert customer record
+    await db.collection('customers').updateOne(
+      { mobile: data.mobile },
+      {
+        $set: {
+          name: data.customerName,
+          address: data.address,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          updatedAt: now,
+        },
+        $inc: {
+          totalOrders: 1,
+          totalSpent: grandTotal,
+        },
+        $setOnInsert: {
+          id: `cust-${Date.now()}`,
+          mobile: data.mobile,
+          createdAt: now,
+          extraMobiles: [],
+          extraAddresses: [],
+        },
+      },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error('MongoDB createOrder error:', err);
   }
 
-  return newOrderRecord;
+  return newOrder;
 }
 
 export async function updateOrderStatus(orderId: string, status: string): Promise<boolean> {
   try {
-    if (await isDatabaseAvailable()) {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { status },
-      });
-      return true;
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const res = await db
+      .collection('orders')
+      .updateOne({ id: orderId }, { $set: { status, updatedAt: new Date().toISOString() } });
+    return res.modifiedCount > 0;
   } catch (err) {
-    console.warn('Prisma updateOrderStatus fallback:', err);
+    console.error('MongoDB updateOrderStatus error:', err);
+    return false;
   }
-
-  const order = memoryOrders.find((o) => o.id === orderId);
-  if (order) {
-    order.status = status;
-    return true;
-  }
-  return false;
 }
 
 export async function deleteOrder(orderId: string): Promise<boolean> {
   try {
-    if (await isDatabaseAvailable()) {
-      await prisma.orderItem.deleteMany({ where: { orderId } });
-      await prisma.order.delete({ where: { id: orderId } });
-      return true;
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const res = await db.collection('orders').deleteOne({ id: orderId });
+    return res.deletedCount > 0;
   } catch (err) {
-    console.warn('Prisma deleteOrder fallback:', err);
+    console.error('MongoDB deleteOrder error:', err);
+    return false;
   }
-  memoryOrders = memoryOrders.filter((o) => o.id !== orderId);
-  return true;
-}
-
-export async function deleteCustomer(customerId: string): Promise<boolean> {
-  try {
-    if (await isDatabaseAvailable()) {
-      await prisma.customer.delete({ where: { id: customerId } });
-      return true;
-    }
-  } catch (err) {
-    console.warn('Prisma deleteCustomer fallback:', err);
-  }
-  memoryCustomers = memoryCustomers.filter((c) => c.id !== customerId);
-  return true;
 }
 
 export async function getCustomers(): Promise<CustomerRecord[]> {
   try {
-    if (await isDatabaseAvailable()) {
-      const custs = await prisma.customer.findMany({ orderBy: { createdAt: 'desc' } });
-      return custs.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        mobile: c.mobile,
-        address: c.address,
-        city: c.city,
-        state: c.state,
-        pincode: c.pincode,
-        totalOrders: c.totalOrders,
-        totalSpent: c.totalSpent,
-        createdAt: c.createdAt.toISOString(),
-      }));
-    }
+    await ensureDbInitialized();
+    const db = await getDb();
+    const docs = await db.collection('customers').find({}).sort({ createdAt: -1 }).toArray();
+
+    return docs.map((c: any) => ({
+      id: c.id || String(c._id),
+      name: c.name,
+      mobile: c.mobile,
+      address: c.address || '',
+      city: c.city || '',
+      state: c.state || '',
+      pincode: c.pincode || '',
+      totalOrders: Number(c.totalOrders || 0),
+      totalSpent: Number(c.totalSpent || 0),
+      createdAt: typeof c.createdAt === 'string' ? c.createdAt : (c.createdAt?.toISOString?.() || new Date().toISOString()),
+    }));
   } catch (err) {
-    console.warn('Prisma getCustomers fallback:', err);
+    console.warn('MongoDB getCustomers fallback:', err);
+    return [];
   }
-  return memoryCustomers;
+}
+
+export async function deleteCustomer(customerId: string): Promise<boolean> {
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    const res = await db.collection('customers').deleteOne({
+      $or: [{ id: customerId }, { _id: customerId as any }],
+    });
+    return res.deletedCount > 0;
+  } catch (err) {
+    console.error('MongoDB deleteCustomer error:', err);
+    return false;
+  }
 }
 
 // ---------------- SETTINGS ----------------
@@ -781,53 +602,141 @@ export async function getSettings(): Promise<SiteSettings> {
   }
 
   try {
-    if (await isDatabaseAvailable()) {
-      const settingsRecords = await prisma.setting.findMany();
-      if (settingsRecords.length > 0) {
-        const merged = { ...DEFAULT_SETTINGS };
-        for (const s of settingsRecords) {
-          if (s.key in merged) {
-            (merged as any)[s.key] = s.key === 'deliveryCharge' ? Number(s.value) : s.value;
+    await ensureDbInitialized();
+    const db = await getDb();
+    const docs = await db.collection('settings').find({}).toArray();
+
+    if (docs.length > 0) {
+      const merged: any = { ...DEFAULT_SETTINGS };
+      for (const s of docs) {
+        if (s.key in merged) {
+          if (s.key === 'deliveryCharge') {
+            merged[s.key] = Number(s.value);
+          } else if (s.key === 'showTopBannerText') {
+            merged[s.key] = s.value === 'true' || s.value === true;
+          } else {
+            merged[s.key] = s.value;
           }
         }
-        cachedSettings = merged;
-        cachedSettingsTime = now;
-        return merged;
       }
+      cachedSettings = merged;
+      cachedSettingsTime = now;
+      return merged;
     }
   } catch (err) {
-    console.warn('Prisma getSettings fallback:', err);
+    console.warn('MongoDB getSettings fallback:', err);
   }
-  return memorySettings;
+
+  return { ...DEFAULT_SETTINGS };
 }
 
 export async function updateSettings(newSettings: Partial<SiteSettings>): Promise<SiteSettings> {
-  cachedSettings = null;
+  clearDbCache();
   try {
-    if (await isDatabaseAvailable()) {
-      const current = await getSettings();
-      const changedEntries = Object.entries(newSettings).filter(
-        ([key, value]) => value !== undefined && String(value) !== String((current as any)[key])
-      );
+    await ensureDbInitialized();
+    const db = await getDb();
+    const now = new Date().toISOString();
 
-      if (changedEntries.length > 0) {
-        const ops = changedEntries.map(([key, value]) =>
-          prisma.setting.upsert({
-            where: { key },
-            update: { value: String(value) },
-            create: { key, value: String(value) },
-          })
-        );
-        await prisma.$transaction(ops);
-      }
+    const ops = Object.entries(newSettings)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key, value]) => ({
+        updateOne: {
+          filter: { key },
+          update: {
+            $set: {
+              key,
+              value: String(value),
+              updatedAt: now,
+            },
+          },
+          upsert: true,
+        },
+      }));
+
+    if (ops.length > 0) {
+      await db.collection('settings').bulkWrite(ops);
     }
   } catch (err) {
-    console.warn('Prisma updateSettings fallback:', err);
+    console.error('MongoDB updateSettings error:', err);
   }
 
-  memorySettings = {
-    ...memorySettings,
-    ...newSettings,
+  return await getSettings();
+}
+
+// ---------------- CONTACT MESSAGES ----------------
+
+export async function getContactMessages() {
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    const docs = await db.collection('contact_messages').find({}).sort({ createdAt: -1 }).toArray();
+    return docs.map((m: any) => ({
+      id: m.id || String(m._id),
+      name: m.name,
+      email: m.email,
+      phone: m.phone,
+      subject: m.subject || null,
+      message: m.message,
+      isRead: Boolean(m.isRead),
+      createdAt: typeof m.createdAt === 'string' ? m.createdAt : (m.createdAt?.toISOString?.() || new Date().toISOString()),
+    }));
+  } catch (err) {
+    console.error('MongoDB getContactMessages error:', err);
+    return [];
+  }
+}
+
+export async function createContactMessage(data: {
+  name: string;
+  email: string;
+  phone: string;
+  subject?: string | null;
+  message: string;
+}) {
+  const doc = {
+    id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    name: data.name.trim(),
+    email: data.email.trim(),
+    phone: data.phone.trim(),
+    subject: data.subject ? data.subject.trim() : null,
+    message: data.message.trim(),
+    isRead: false,
+    createdAt: new Date().toISOString(),
   };
-  return memorySettings;
+
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    await db.collection('contact_messages').insertOne({ ...doc });
+  } catch (err) {
+    console.error('MongoDB createContactMessage error:', err);
+  }
+
+  return doc;
+}
+
+export async function deleteContactMessage(id: string): Promise<boolean> {
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    const res = await db.collection('contact_messages').deleteOne({ id });
+    return res.deletedCount > 0;
+  } catch (err) {
+    console.error('MongoDB deleteContactMessage error:', err);
+    return false;
+  }
+}
+
+export async function updateContactMessageStatus(id: string, isRead: boolean): Promise<any> {
+  try {
+    await ensureDbInitialized();
+    const db = await getDb();
+    await db
+      .collection('contact_messages')
+      .updateOne({ id }, { $set: { isRead: Boolean(isRead), updatedAt: new Date().toISOString() } });
+    return await db.collection('contact_messages').findOne({ id });
+  } catch (err) {
+    console.error('MongoDB updateContactMessageStatus error:', err);
+    return null;
+  }
 }

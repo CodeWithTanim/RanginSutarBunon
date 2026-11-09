@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getCategories, createCategory } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
 
@@ -7,7 +8,7 @@ export async function GET() {
     const categories = await getCategories();
     return NextResponse.json(categories, {
       headers: {
-        'Cache-Control': 'public, max-age=10, stale-while-revalidate=59',
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
       },
     });
   } catch (error: any) {
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
     }
 
     const created = await createCategory(body.name);
+    try {
+      revalidatePath('/');
+      revalidatePath('/shop');
+    } catch {}
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create category' }, { status: 500 });

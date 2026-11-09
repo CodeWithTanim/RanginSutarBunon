@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getProductById, updateProduct, deleteProduct } from '@/lib/db';
 import { getAdminSession } from '@/lib/auth';
 
@@ -11,7 +12,11 @@ export async function GET(
   if (!product) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
-  return NextResponse.json(product);
+  return NextResponse.json(product, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+    },
+  });
 }
 
 export async function PUT(
@@ -30,6 +35,11 @@ export async function PUT(
     if (!updated) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+    try {
+      revalidatePath('/');
+      revalidatePath('/shop');
+      revalidatePath(`/product/${id}`);
+    } catch {}
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update product' }, { status: 500 });
@@ -51,6 +61,11 @@ export async function DELETE(
     if (!success) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+    try {
+      revalidatePath('/');
+      revalidatePath('/shop');
+      revalidatePath(`/product/${id}`);
+    } catch {}
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to delete product' }, { status: 500 });

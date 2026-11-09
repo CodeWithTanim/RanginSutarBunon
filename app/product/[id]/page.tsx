@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { ProductItem } from '@/lib/initialData';
 import { useCart } from '@/context/CartContext';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,12 +28,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState<boolean>(true);
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState<string>('');
-  const [deliveryCharge, setDeliveryCharge] = useState<number>(80);
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(150);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/products/${id}`).then((res) => (res.ok ? res.json() : null)),
-      fetch('/api/settings').then((res) => res.json()),
+      fetch('/api/settings').then((res) => (res.ok ? res.json() : null)),
     ])
       .then(([prodData, settingsData]) => {
         if (prodData) {
@@ -47,14 +50,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 animate-pulse space-y-8">
-        <div className="h-6 w-32 bg-gray-200 rounded-full" />
+      <div className="max-w-7xl mx-auto px-4 py-16 space-y-8">
+        <Skeleton className="h-6 w-32 rounded-full" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="h-96 bg-gray-200 rounded-3xl" />
+          <Skeleton className="aspect-square w-full rounded-3xl" />
           <div className="space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-3/4" />
-            <div className="h-6 bg-gray-200 rounded w-1/3" />
-            <div className="h-24 bg-gray-200 rounded" />
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-12 w-full rounded-full" />
           </div>
         </div>
       </div>
@@ -67,11 +71,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         <AlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
         <h2 className="font-serif text-2xl font-bold text-gray-900">Product Not Found</h2>
         <p className="text-xs text-gray-500">The product you are looking for may have been removed or is unavailable.</p>
-        <Link
-          href="/shop"
-          className="inline-block px-6 py-2.5 bg-[#003d29] text-white font-bold text-xs rounded-full shadow-md"
-        >
-          Return to Shop
+        <Link href="/shop">
+          <Button size="sm">Return to Shop</Button>
         </Link>
       </div>
     );
@@ -103,7 +104,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left: Image Gallery */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="relative aspect-square w-full bg-[#f5f5f5] rounded-3xl overflow-hidden border border-gray-200 shadow-sm p-6 flex items-center justify-center">
+          <div className="relative aspect-square w-full bg-[#f8f7f5] rounded-3xl overflow-hidden border border-gray-200 shadow-sm p-6 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={activeImage || product.imageUrl}
@@ -111,9 +112,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               className="w-full h-full object-contain mix-blend-multiply"
             />
             {hasDiscount && (
-              <span className="absolute top-4 left-4 bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+              <Badge variant="destructive" className="absolute top-4 left-4 text-xs font-bold shadow-md">
                 SAVE {discountPercent}%
-              </span>
+              </Badge>
             )}
           </div>
 
@@ -123,7 +124,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <button
                   key={idx}
                   onClick={() => setActiveImage(img)}
-                  className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 shrink-0 transition-all p-2 bg-[#f5f5f5] ${
+                  className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 shrink-0 transition-all p-2 bg-[#f8f7f5] ${
                     activeImage === img ? 'border-[#003d29]' : 'border-gray-200 opacity-60 hover:opacity-100'
                   }`}
                 >
@@ -146,7 +147,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             </h1>
           </div>
 
-          {/* Pricing (Requirement 9: Taka ৳ Symbol) */}
+          {/* Pricing */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between">
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-black text-gray-900">৳{effectivePrice}</span>
@@ -155,9 +156,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               )}
             </div>
             {hasDiscount && (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
+              <Badge variant="secondary" className="font-bold">
                 Save ৳{product.price - product.discountPrice!}
-              </span>
+              </Badge>
             )}
           </div>
 
@@ -202,18 +203,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
+                <Button
                   onClick={() => addToCart(product, quantity)}
-                  className="px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-full border border-gray-300 transition-colors flex items-center justify-center gap-2 text-sm"
+                  variant="outline"
+                  size="lg"
+                  className="w-full text-gray-900 font-bold"
                 >
-                  <ShoppingBag className="w-5 h-5 text-[#003d29]" /> Add to Cart
-                </button>
-                <button
+                  <ShoppingBag className="w-5 h-5 text-[#003d29] mr-2" /> Add to Cart
+                </Button>
+                <Button
                   onClick={handleBuyNow}
-                  className="px-6 py-4 bg-[#003d29] hover:bg-[#00281b] text-white font-extrabold rounded-full shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2 text-sm"
+                  size="lg"
+                  className="w-full font-extrabold shadow-lg"
                 >
                   Buy Now (COD)
-                </button>
+                </Button>
               </div>
             </div>
           )}

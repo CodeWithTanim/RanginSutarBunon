@@ -1,6 +1,46 @@
+import { betterAuth } from 'better-auth';
+import { mongodbAdapter } from 'better-auth/adapters/mongodb';
+import { MongoClient } from 'mongodb';
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
+import { getDb } from './mongodb';
+
+const uri = process.env.MONGODB_URI || '';
+const dbName = process.env.MONGODB_DB || 'rangin-sutar-bunon';
+
+let mongoClient: MongoClient | null = null;
+function getAuthMongoClient() {
+  if (!mongoClient) {
+    mongoClient = new MongoClient(uri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+    });
+  }
+  return mongoClient;
+}
+
+const authDb = getAuthMongoClient().db(dbName);
+
+export const auth = betterAuth({
+  database: mongodbAdapter(authDb),
+  secret: process.env.BETTER_AUTH_SECRET || process.env.JWT_SECRET || 'rangin-sutar-bunon-super-secret-key-2026',
+  baseURL: process.env.BETTER_AUTH_URL || 'https://rangin-sutar-bunon.vercel.app',
+  emailAndPassword: {
+    enabled: true,
+  },
+  user: {
+    additionalFields: {
+      role: { type: 'string', defaultValue: 'user' },
+      mobile: { type: 'string', required: false },
+      address: { type: 'string', required: false },
+      city: { type: 'string', required: false },
+      state: { type: 'string', required: false },
+      pincode: { type: 'string', required: false },
+    },
+  },
+});
 
 const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || 'rangin-sutar-bunon-super-secret-jwt-key-2026'
@@ -60,4 +100,14 @@ export async function getAdminSession() {
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return await verifyAdminToken(token);
+}
+
+export async function getAdminUserFromDb(username: string) {
+  try {
+    const db = await getDb();
+    return await db.collection('users').findOne({ username });
+  } catch (err) {
+    console.warn('MongoDB getAdminUserFromDb warning:', err);
+    return null;
+  }
 }

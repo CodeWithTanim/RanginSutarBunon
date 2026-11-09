@@ -3,12 +3,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, ArrowUpDown, AlertCircle } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
-import { ProductItem, CategoryItem, INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '@/lib/initialData';
+import { ProductItem, CategoryItem } from '@/lib/initialData';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ShopPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -23,10 +26,9 @@ export default function ShopPage() {
       if (searchParam) setSearchQuery(searchParam);
     }
 
-    setLoading(true);
     Promise.all([
-      fetch('/api/products').then((res) => res.json()),
-      fetch('/api/categories').then((res) => res.json()),
+      fetch('/api/products').then((res) => (res.ok ? res.json() : [])),
+      fetch('/api/categories').then((res) => (res.ok ? res.json() : [])),
     ])
       .then(([prodsData, catsData]) => {
         if (Array.isArray(prodsData)) setProducts(prodsData);
@@ -72,10 +74,10 @@ export default function ShopPage() {
     <div className="min-h-screen py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <div className="space-y-3 text-center sm:text-left">
         <h1 className="font-serif text-3xl sm:text-4xl font-extrabold text-gray-900">
-          Catalog
+          Handcrafted Catalog
         </h1>
         <p className="text-sm text-gray-600 max-w-2xl">
-          Browse our complete collection. Filter by category or search directly for specific items.
+          Browse our complete collection of authentic Bengali textiles, terracotta pottery, and artisan crafts.
         </p>
       </div>
 
@@ -83,12 +85,12 @@ export default function ShopPage() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
           <div className="md:col-span-6 relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search products by name or keyword..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-gray-200 focus:border-[#003d29] text-gray-900 placeholder-gray-500 rounded-full text-xs outline-none transition-colors"
+              className="pl-10 pr-12 rounded-full bg-gray-50 border-gray-200 focus-visible:ring-[#003d29] text-xs"
             />
             {searchQuery && (
               <button
@@ -150,17 +152,19 @@ export default function ShopPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
             <div
               key={n}
-              className="bg-white border border-gray-200 rounded-3xl h-80 animate-pulse p-4 flex flex-col justify-between"
+              className="bg-white border border-gray-200 rounded-3xl p-4 space-y-4"
             >
-              <div className="w-full h-44 bg-gray-100 rounded-2xl" />
+              <Skeleton className="aspect-square w-full rounded-2xl" />
               <div className="space-y-2">
-                <div className="h-4 bg-gray-100 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
               </div>
+              <Skeleton className="h-9 w-full rounded-full" />
             </div>
           ))}
         </div>
@@ -171,15 +175,15 @@ export default function ShopPage() {
           <p className="text-xs text-gray-500">
             We couldn’t find any items matching your selected search query or category filter.
           </p>
-          <button
+          <Button
             onClick={() => {
               setSearchQuery('');
               setSelectedCategory('all');
             }}
-            className="px-6 py-2.5 bg-[#003d29] hover:bg-[#00281b] text-white font-bold text-xs rounded-full shadow-md transition-colors"
+            size="sm"
           >
             Reset Filters
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
