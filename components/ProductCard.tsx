@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 export default function ProductCard({ product }: { product: ProductItem }) {
   const { addToCart } = useCart();
   const [isLiked, setIsLiked] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
   const effectivePrice = product.discountPrice ?? product.price;
@@ -27,11 +28,15 @@ export default function ProductCard({ product }: { product: ProductItem }) {
           src={product.imageUrl}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+          decoding="async"
+          onLoad={() => setIsLoaded(true)}
+          className={`w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-all duration-500 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
         />
 
         {/* Top Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1">
+        <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
           {hasDiscount && (
             <Badge variant="destructive" className="text-[10px] px-2 py-0.5 font-bold shadow-sm">
               -{discountPercent}%
@@ -47,10 +52,11 @@ export default function ProductCard({ product }: { product: ProductItem }) {
         {/* Top Right Heart Wishlist Icon */}
         <button
           onClick={() => setIsLiked(!isLiked)}
-          className={`absolute top-3 right-3 p-2 rounded-full bg-white shadow-md transition-colors ${
+          className={`absolute top-3 right-3 p-2 rounded-full bg-white shadow-md transition-colors z-10 ${
             isLiked ? 'text-rose-500 fill-rose-500' : 'text-gray-400 hover:text-gray-700'
           }`}
           title="Add to Wishlist"
+          aria-label="Add to Wishlist"
         >
           <Heart className="w-4 h-4 fill-current" />
         </button>
