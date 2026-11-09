@@ -612,7 +612,7 @@ export async function getSettings(): Promise<SiteSettings> {
         if (s.key in merged) {
           if (s.key === 'deliveryCharge') {
             merged[s.key] = Number(s.value);
-          } else if (s.key === 'showTopBannerText') {
+          } else if (s.key === 'showTopBannerText' || s.key === 'telegramEnabled') {
             merged[s.key] = s.value === 'true' || s.value === true;
           } else {
             merged[s.key] = s.value;

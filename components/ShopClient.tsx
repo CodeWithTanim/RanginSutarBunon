@@ -199,3 +199,4 @@ export default function ShopClient(props: ShopClientProps) {
     </Suspense>
   );
 }
+
