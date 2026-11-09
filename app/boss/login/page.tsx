@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, User, Sparkles, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, User, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState<string>('admin');
-  const [password, setPassword] = useState<string>('admin123');
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
       router.push('/boss');
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Invalid credentials');
+      setError(err.message || 'Invalid username or password');
     } finally {
       setLoading(false);
     }
@@ -66,8 +66,10 @@ export default function AdminLoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your admin username"
                 required
-                className="w-full pl-11 pr-4 py-3.5 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-sm outline-none"
+                autoComplete="username"
+                className="w-full pl-11 pr-4 py-3.5 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 placeholder-stone-600 rounded-xl text-sm outline-none transition-colors"
               />
             </div>
           </div>
@@ -80,8 +82,10 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your admin password"
                 required
-                className="w-full pl-11 pr-4 py-3.5 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 rounded-xl text-sm outline-none"
+                autoComplete="current-password"
+                className="w-full pl-11 pr-4 py-3.5 bg-stone-950 border border-stone-800 focus:border-amber-500 text-stone-100 placeholder-stone-600 rounded-xl text-sm outline-none transition-colors"
               />
             </div>
           </div>
@@ -89,16 +93,11 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:to-amber-600 text-stone-950 font-extrabold rounded-2xl shadow-xl shadow-amber-950/40 text-sm transition-all disabled:opacity-50"
+            className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:to-amber-600 text-stone-950 font-extrabold rounded-2xl shadow-xl shadow-amber-950/40 text-sm transition-all disabled:opacity-50 cursor-pointer active:scale-[0.99]"
           >
             {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
           </button>
         </form>
-
-        <div className="pt-4 border-t border-stone-800 text-center text-xs text-stone-500 space-y-1">
-          <p>Demo Initial Credentials:</p>
-          <p className="font-mono text-amber-400/90 font-semibold">Username: admin | Password: admin123</p>
-        </div>
       </div>
     </div>
   );
