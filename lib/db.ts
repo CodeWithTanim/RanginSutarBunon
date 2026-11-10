@@ -595,9 +595,9 @@ export async function deleteCustomer(customerId: string): Promise<boolean> {
 
 // ---------------- SETTINGS ----------------
 
-export async function getSettings(): Promise<SiteSettings> {
+export async function getSettings(bypassCache = false): Promise<SiteSettings> {
   const now = Date.now();
-  if (cachedSettings && now - cachedSettingsTime < CACHE_TTL_MS) {
+  if (!bypassCache && cachedSettings && now - cachedSettingsTime < CACHE_TTL_MS) {
     return cachedSettings;
   }
 

@@ -49,10 +49,12 @@ export async function POST(request: Request) {
       items,
     });
 
-    // Send Telegram Order Notification to all Admins asynchronously
-    sendTelegramOrderNotification(order).catch((err) => {
-      console.warn('[Telegram Notification] Non-blocking dispatch error:', err);
-    });
+    // Send Telegram Order Notification to all Admins (awaited for Vercel serverless delivery)
+    try {
+      await sendTelegramOrderNotification(order);
+    } catch (err) {
+      console.warn('[Telegram Notification] Dispatch error:', err);
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (error: any) {

@@ -42,7 +42,7 @@ function getSiteUrl(): string {
  */
 export async function sendTelegramBroadcast(messageHtml: string): Promise<TelegramSendResult> {
   try {
-    const settings: SiteSettings = await getSettings();
+    const settings: SiteSettings = await getSettings(true);
     const token = settings.telegramBotToken?.trim() || process.env.TELEGRAM_BOT_TOKEN?.trim();
     const rawChatIds = settings.telegramChatIds?.trim() || process.env.TELEGRAM_CHAT_IDS?.trim() || '';
     const isEnabled = settings.telegramEnabled || process.env.TELEGRAM_ENABLED === 'true';
@@ -70,6 +70,7 @@ export async function sendTelegramBroadcast(messageHtml: string): Promise<Telegr
             parse_mode: 'HTML',
             disable_web_page_preview: true,
           }),
+          signal: AbortSignal.timeout(4500),
         });
 
         const data = await response.json();
@@ -84,6 +85,10 @@ export async function sendTelegramBroadcast(messageHtml: string): Promise<Telegr
     });
 
     await Promise.allSettled(dispatchPromises);
+
+    if (errors.length > 0) {
+      console.warn('[Telegram Broadcast] Partial delivery errors:', errors);
+    }
 
     return {
       success: sentCount > 0,

@@ -22,14 +22,18 @@ export async function POST(req: Request) {
       message,
     });
 
-    // Non-blocking Telegram notification to admins
-    sendTelegramContactNotification({
-      name,
-      email,
-      phone,
-      subject,
-      message,
-    }).catch((err) => console.error('[Contact Form] Telegram alert warning:', err));
+    // Send Telegram notification to admins (awaited for Vercel serverless delivery)
+    try {
+      await sendTelegramContactNotification({
+        name,
+        email,
+        phone,
+        subject,
+        message,
+      });
+    } catch (err) {
+      console.error('[Contact Form] Telegram alert warning:', err);
+    }
 
     return NextResponse.json({ success: true, message: newMessage }, { status: 201 });
   } catch (error: any) {

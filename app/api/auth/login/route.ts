@@ -35,24 +35,32 @@ export async function POST(request: Request) {
     }
 
     if (!isValid) {
-      // Send Failed Login Attempt Security Alert
-      sendTelegramAdminLoginNotification({
-        username,
-        ip,
-        userAgent,
-        success: false,
-      }).catch((err) => console.error('[Login Security Alert] Telegram warning:', err));
+      // Send Failed Login Attempt Security Alert (awaited for Vercel serverless)
+      try {
+        await sendTelegramAdminLoginNotification({
+          username,
+          ip,
+          userAgent,
+          success: false,
+        });
+      } catch (err) {
+        console.error('[Login Security Alert] Telegram warning:', err);
+      }
 
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
 
-    // Send Successful Login Notification
-    sendTelegramAdminLoginNotification({
-      username,
-      ip,
-      userAgent,
-      success: true,
-    }).catch((err) => console.error('[Login Notification] Telegram warning:', err));
+    // Send Successful Login Notification (awaited for Vercel serverless)
+    try {
+      await sendTelegramAdminLoginNotification({
+        username,
+        ip,
+        userAgent,
+        success: true,
+      });
+    } catch (err) {
+      console.error('[Login Notification] Telegram warning:', err);
+    }
 
     const token = await createAdminToken({ username, role: 'ADMIN' });
     await setAdminSessionCookie(token);

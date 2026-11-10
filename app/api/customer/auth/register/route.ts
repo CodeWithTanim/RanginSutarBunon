@@ -71,13 +71,17 @@ export async function POST(request: Request) {
     });
     await setCustomerSessionCookie(token);
 
-    // Non-blocking Telegram notification to admins
-    sendTelegramCustomerRegistrationNotification({
-      name: name.trim(),
-      mobile: cleanMobile,
-      address: address.trim(),
-      city: city.trim(),
-    }).catch((err) => console.error('[Customer Register Alert] Telegram warning:', err));
+    // Send Telegram notification to admins (awaited so Vercel serverless completes delivery)
+    try {
+      await sendTelegramCustomerRegistrationNotification({
+        name: name.trim(),
+        mobile: cleanMobile,
+        address: address.trim(),
+        city: city.trim(),
+      });
+    } catch (err) {
+      console.error('[Customer Register Alert] Telegram warning:', err);
+    }
 
     return NextResponse.json({
       success: true,

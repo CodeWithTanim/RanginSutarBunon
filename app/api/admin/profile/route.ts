@@ -109,13 +109,17 @@ export async function PUT(request: Request) {
     const forwarded = request.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'Local / Unknown IP';
 
-    sendTelegramAdminProfileChangeNotification({
-      previousUsername: session.username,
-      updatedUsername,
-      passwordChanged: Boolean(newPassword && newPassword.trim()),
-      nameChanged: Boolean(newName && newName.trim()),
-      ip,
-    }).catch((err) => console.error('[Profile Security Alert] Telegram warning:', err));
+    try {
+      await sendTelegramAdminProfileChangeNotification({
+        previousUsername: session.username,
+        updatedUsername,
+        passwordChanged: Boolean(newPassword && newPassword.trim()),
+        nameChanged: Boolean(newName && newName.trim()),
+        ip,
+      });
+    } catch (err) {
+      console.error('[Profile Security Alert] Telegram warning:', err);
+    }
 
     return NextResponse.json({
       success: true,

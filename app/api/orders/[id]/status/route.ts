@@ -24,12 +24,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Non-blocking Telegram notification to admins
-    sendTelegramOrderStatusNotification({
-      orderId: id,
-      newStatus: status,
-      updatedBy: session.username,
-    }).catch((err) => console.error('[Order Status Alert] Telegram warning:', err));
+    // Send Telegram notification to admins (awaited for Vercel serverless delivery)
+    try {
+      await sendTelegramOrderStatusNotification({
+        orderId: id,
+        newStatus: status,
+        updatedBy: session.username,
+      });
+    } catch (err) {
+      console.error('[Order Status Alert] Telegram warning:', err);
+    }
 
     return NextResponse.json({ success: true, orderId: id, newStatus: status });
   } catch (error: any) {
